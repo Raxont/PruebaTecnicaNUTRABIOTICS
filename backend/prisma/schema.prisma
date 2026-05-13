@@ -1,0 +1,97 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum UserRole {
+  ADMIN
+  DOCTOR
+  PATIENT
+}
+
+enum PrescriptionStatus {
+  PENDING
+  CONSUMED
+}
+
+// Models
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  firstName     String?
+  lastName      String?
+  role          UserRole  @default(PATIENT)
+  
+  // Relations
+  doctor        Doctor?
+  patient       Patient?
+  doctorPrescriptions Prescription[] @relation("doctor")
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Doctor {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  specialization String?
+  
+  // Relations
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  prescriptions Prescription[] @relation("doctor_prescriptions")
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Patient {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  
+  // Relations
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  prescriptions Prescription[] @relation("patient_prescriptions")
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Prescription {
+  id            String    @id @default(cuid())
+  doctorId      String
+  patientId     String
+  status        PrescriptionStatus @default(PENDING)
+  patientEmail  String?   // Para creación de prescripción para paciente que no está en el sistema
+  
+  // Relations
+  doctor        Doctor    @relation("doctor_prescriptions", fields: [doctorId], references: [id], onDelete: Cascade)
+  patient       Patient   @relation("patient_prescriptions", fields: [patientId], references: [id], onDelete: Cascade)
+  items         PrescriptionItem[]
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model PrescriptionItem {
+  id            String    @id @default(cuid())
+  prescriptionId String
+  name          String    // Nombre del medicamento
+  dosage        String    // e.g., "500mg"
+  quantity      Int       // Cantidad de dosis
+  instructions  String?   // Indicaciones
+  
+  // Relations
+  prescription  Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}

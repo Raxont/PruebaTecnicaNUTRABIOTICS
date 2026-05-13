@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: nutrabitics_db
+    environment:
+      POSTGRES_USER: nutrabitics_user
+      POSTGRES_PASSWORD: nutrabitics_password
+      POSTGRES_DB: nutrabitics_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - nutrabitics_network
+
+  adminer:
+    image: adminer:latest
+    container_name: nutrabitics_adminer
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    networks:
+      - nutrabitics_network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: nutrabitics_backend
+    environment:
+      DATABASE_URL: postgresql://nutrabitics_user:nutrabitics_password@postgres:5432/nutrabitics_db
+      JWT_ACCESS_SECRET: your_secret_key_here_minimum_32_chars
+      JWT_REFRESH_SECRET: your_refresh_secret_here_minimum_32
+      JWT_ACCESS_TTL: 900
+      JWT_REFRESH_TTL: 604800
+      APP_ORIGIN: http://localhost:3000
+      PORT: 3001
+    ports:
+      - "3001:3001"
+    depends_on:
+      - postgres
+    networks:
+      - nutrabitics_network
+    command: >
+      sh -c "npm run prisma:generate &&
+             npm run prisma:migrate &&
+             npm run start:dev"
+
+volumes:
+  postgres_data:
+
+networks:
+  nutrabitics_network:
+    driver: bridge
