@@ -1,7 +1,8 @@
-import { Controller, Post, Get, Patch, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Delete, Body, Param, UseGuards, Query } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { UsersService } from './users.service';
 import { CreateUserDto, UserResponseDto } from './users.dto';
+import { UserFiltersDto } from '../common/dto/pagination.dto';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 
@@ -18,8 +19,8 @@ export class UsersController {
 
   @Get()
   @Roles('ADMIN')
-  async getAllUsers(): Promise<UserResponseDto[]> {
-    return this.usersService.getAllUsers();
+  async getAllUsers(@Query() filters: UserFiltersDto) {
+    return this.usersService.getUsers(filters);
   }
 
   @Get(':id')

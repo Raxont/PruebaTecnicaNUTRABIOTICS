@@ -18,12 +18,17 @@ export class CreatePrescriptionItemDto {
 }
 
 export class CreatePrescriptionDto {
+  @IsOptional()
   @IsString()
-  patientId: string;
+  patientId?: string;
 
   @IsOptional()
   @IsEmail()
   patientEmail?: string;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
 
   @IsArray()
   @ValidateNested({ each: true })
@@ -46,9 +51,13 @@ export class PrescriptionItemResponseDto {
 
 export class PrescriptionResponseDto {
   id: string;
+  code: string;
   doctorId: string;
-  patientId: string;
+  patientId?: string;
+  patientEmail?: string;
   status: PrescriptionStatus;
+  notes?: string;
+  consumedAt?: Date;
   items: PrescriptionItemResponseDto[];
   doctor?: {
     id: string;

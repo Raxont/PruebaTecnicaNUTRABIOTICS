@@ -1,8 +1,9 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto, UserResponseDto } from './users.dto';
 import { UserRole } from '@prisma/client';
+import { UserFiltersDto } from '../common/dto/pagination.dto';
 
 @Injectable()
 export class UsersService {
@@ -64,9 +65,51 @@ export class UsersService {
     return this.formatUserResponse(user);
   }
 
-  async getAllUsers(): Promise<UserResponseDto[]> {
-    const users = await this.prisma.user.findMany();
-    return users.map(user => this.formatUserResponse(user));
+  async getUsers(filters: UserFiltersDto) {
+    const {
+      page = 1,
+      limit = 10,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+      order,
+      role,
+      query,
+    } = filters;
+
+    const skip = (page - 1) * limit;
+    const actualSortOrder = order || sortOrder;
+
+    const where: any = {};
+    if (role) {
+      where.role = role;
+    }
+    if (query) {
+      where.OR = [
+        { email: { contains: query, mode: 'insensitive' } },
+        { firstName: { contains: query, mode: 'insensitive' } },
+        { lastName: { contains: query, mode: 'insensitive' } },
+      ];
+    }
+
+    const total = await this.prisma.user.count({ where });
+    const users = await this.prisma.user.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: {
+        [sortBy]: actualSortOrder,
+      },
+    });
+
+    return {
+      data: users.map(user => this.formatUserResponse(user)),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async updateUser(id: string, data: Partial<CreateUserDto>): Promise<UserResponseDto> {

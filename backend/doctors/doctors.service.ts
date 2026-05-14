@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateDoctorDto, DoctorResponseDto } from './doctors.dto';
+import { SearchFiltersDto } from '../common/dto/pagination.dto';
 
 @Injectable()
 export class DoctorsService {
@@ -32,12 +33,48 @@ export class DoctorsService {
     return this.formatDoctorResponse(doctor);
   }
 
-  async getAllDoctors(): Promise<DoctorResponseDto[]> {
+  async getAllDoctors(filters: SearchFiltersDto) {
+    const {
+      page = 1,
+      limit = 10,
+      query,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+      order,
+    } = filters;
+
+    const skip = (page - 1) * limit;
+    const actualSortOrder = order || sortOrder;
+
+    const where: any = {};
+    if (query) {
+      where.OR = [
+        { user: { email: { contains: query, mode: 'insensitive' } } },
+        { user: { firstName: { contains: query, mode: 'insensitive' } } },
+        { user: { lastName: { contains: query, mode: 'insensitive' } } },
+      ];
+    }
+
+    const total = await this.prisma.doctor.count({ where });
     const doctors = await this.prisma.doctor.findMany({
+      where,
       include: { user: true },
+      skip,
+      take: limit,
+      orderBy: {
+        [sortBy]: actualSortOrder,
+      },
     });
 
-    return doctors.map(doctor => this.formatDoctorResponse(doctor));
+    return {
+      data: doctors.map(doctor => this.formatDoctorResponse(doctor)),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async updateDoctor(id: string, updateDoctorDto: Partial<CreateDoctorDto>): Promise<DoctorResponseDto> {
@@ -62,7 +99,7 @@ export class DoctorsService {
     return {
       id: doctor.id,
       userId: doctor.userId,
-      specialization: doctor.specialization || undefined,
+      specialty: doctor.specialty || undefined,
       user: doctor.user ? {
         id: doctor.user.id,
         email: doctor.user.email,

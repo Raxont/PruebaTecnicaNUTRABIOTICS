@@ -7,7 +7,7 @@ import { ThrottlerGuard } from '@nestjs/throttler';
  */
 @Injectable()
 export class ThrottleGuard extends ThrottlerGuard {
-  protected getTracker(req: Record<string, any>): string {
+  protected async getTracker(req: Record<string, any>): Promise<string> {
     // Usar IP del cliente
     return req.ip;
   }

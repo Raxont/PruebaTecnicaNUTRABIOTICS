@@ -9,9 +9,21 @@ import { UserRole } from '@prisma/client';
 export class AuthController {
   constructor(private authService: AuthService) {}
 
+  @Post('register')
+  async register(@Body() signUpDto: SignUpDto): Promise<AuthResponseDto> {
+    const role = signUpDto.role || UserRole.PATIENT;
+    return this.authService.signUp(signUpDto, role);
+  }
+
   @Post('sign-up')
   async signUp(@Body() signUpDto: SignUpDto): Promise<AuthResponseDto> {
-    return this.authService.signUp(signUpDto, UserRole.PATIENT);
+    const role = signUpDto.role || UserRole.PATIENT;
+    return this.authService.signUp(signUpDto, role);
+  }
+
+  @Post('login')
+  async login(@Body() signInDto: SignInDto): Promise<AuthResponseDto> {
+    return this.authService.signIn(signInDto);
   }
 
   @Post('sign-in')
@@ -64,12 +76,18 @@ export class AuthController {
   /**
    * Verificar si el usuario está autenticado
    */
-  @Get('me')
+  @Get('profile')
   @UseGuards(AuthGuard('jwt'))
-  async getMe(@Request() req): Promise<any> {
+  async getProfile(@Request() req): Promise<any> {
     return {
       id: req.user.userId,
       role: req.user.role,
     };
+  }
+
+  @Get('me')
+  @UseGuards(AuthGuard('jwt'))
+  async getMe(@Request() req): Promise<any> {
+    return this.getProfile(req);
   }
 }

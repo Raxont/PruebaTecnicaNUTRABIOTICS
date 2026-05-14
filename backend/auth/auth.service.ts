@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Response } from 'express';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { SignUpDto, SignInDto, AuthResponseDto } from './auth.dto';
 import { UserRole } from '@prisma/client';
@@ -38,6 +38,23 @@ export class AuthService {
         role,
       },
     });
+
+    // Create related profile when registering doctor or patient
+    if (role === UserRole.DOCTOR) {
+      await this.prisma.doctor.create({
+        data: {
+          userId: user.id,
+        },
+      });
+    }
+
+    if (role === UserRole.PATIENT) {
+      await this.prisma.patient.create({
+        data: {
+          userId: user.id,
+        },
+      });
+    }
 
     // Generate tokens
     const tokens = this.generateTokens(user.id, user.role);
@@ -183,21 +200,30 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign(
       { sub: user.id, role: user.role },
-      { secret: process.env.JWT_ACCESS_SECRET, expiresIn: process.env.JWT_ACCESS_TTL },
+      { secret: process.env.JWT_ACCESS_SECRET, expiresIn: process.env.JWT_ACCESS_TTL as any },
     );
 
     return { accessToken };
   }
 
   private generateTokens(userId: string, role: UserRole) {
+    const accessTokenExpiresIn = process.env.JWT_ACCESS_TTL || '900';
+    const refreshTokenExpiresIn = process.env.JWT_REFRESH_TTL || '604800';
+
     const accessToken = this.jwtService.sign(
       { sub: userId, role },
-      { secret: process.env.JWT_ACCESS_SECRET, expiresIn: process.env.JWT_ACCESS_TTL },
+      { 
+        secret: process.env.JWT_ACCESS_SECRET, 
+        expiresIn: accessTokenExpiresIn as any
+      },
     );
 
     const refreshToken = this.jwtService.sign(
       { sub: userId, role },
-      { secret: process.env.JWT_REFRESH_SECRET, expiresIn: process.env.JWT_REFRESH_TTL },
+      { 
+        secret: process.env.JWT_REFRESH_SECRET, 
+        expiresIn: refreshTokenExpiresIn as any
+      },
     );
 
     return { accessToken, refreshToken };

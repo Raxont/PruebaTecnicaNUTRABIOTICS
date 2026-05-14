@@ -1,9 +1,10 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, UseGuards, Query } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { PatientsService } from './patients.service';
 import { PatientResponseDto } from './patients.dto';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
+import { SearchFiltersDto } from '../common/dto/pagination.dto';
 
 @Controller('patients')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -12,8 +13,8 @@ export class PatientsController {
 
   @Get()
   @Roles('ADMIN', 'DOCTOR')
-  async getAllPatients(): Promise<PatientResponseDto[]> {
-    return this.patientsService.getAllPatients();
+  async getAllPatients(@Query() filters: SearchFiltersDto) {
+    return this.patientsService.getAllPatients(filters);
   }
 
   @Get(':id')
