@@ -24,17 +24,39 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       });
 
-      setAuthState(response);
+      console.log('Login response:', response); // Debug
+
+      // Verificar que la respuesta tenga la estructura correcta
+      if (!response || !response.accessToken || !response.user) {
+        throw new Error('Respuesta de autenticación inválida');
+      }
+
+      // Guardar el estado de autenticación
+      setAuthState({
+        accessToken: response.accessToken,
+        refreshToken: response.refreshToken,
+        user: response.user,
+      });
+
+      console.log('Auth state saved, redirecting...'); // Debug
+
       const role = response.user.role;
 
+      // Pequeño delay para asegurar que el estado se guarde
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Redirigir según el rol
       if (role === 'DOCTOR') {
         router.push('/doctor/prescriptions');
       } else if (role === 'PATIENT') {
         router.push('/patient/prescriptions');
-      } else {
+      } else if (role === 'ADMIN') {
         router.push('/admin');
+      } else {
+        router.push('/');
       }
     } catch (err) {
+      console.error('Login error:', err); // Debug
       setError(err instanceof Error ? err.message : 'Error al iniciar sesión');
     } finally {
       setLoading(false);

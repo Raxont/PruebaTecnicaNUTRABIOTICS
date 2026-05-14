@@ -11,7 +11,7 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
-  ) {}
+  ) { }
 
   async signUp(signUpDto: SignUpDto, role: UserRole = UserRole.PATIENT): Promise<AuthResponseDto> {
     const { email, password, firstName, lastName } = signUpDto;
@@ -147,8 +147,8 @@ export class AuthService {
    * Establece las cookies HTTP-Only
    */
   private setAuthCookies(res: Response, accessToken: string, refreshToken: string) {
-    const accessTokenExpiresIn = parseInt(process.env.JWT_ACCESS_TTL) * 1000; // segundos a ms
-    const refreshTokenExpiresIn = parseInt(process.env.JWT_REFRESH_TTL) * 1000;
+    const accessTokenExpiresIn = parseInt(process.env.JWT_ACCESS_TTL || '900') * 1000; // segundos a ms
+    const refreshTokenExpiresIn = parseInt(process.env.JWT_REFRESH_TTL || '604800') * 1000;
 
     // Access Token (corta duración)
     res.cookie('accessToken', accessToken, {
@@ -200,29 +200,40 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign(
       { sub: user.id, role: user.role },
-      { secret: process.env.JWT_ACCESS_SECRET, expiresIn: process.env.JWT_ACCESS_TTL as any },
+      {
+        secret: process.env.JWT_ACCESS_SECRET || 'default-secret-change-me',
+        expiresIn: parseInt(process.env.JWT_ACCESS_TTL || '900')  // ← Número
+      },
     );
 
     return { accessToken };
   }
 
   private generateTokens(userId: string, role: UserRole) {
-    const accessTokenExpiresIn = process.env.JWT_ACCESS_TTL || '900';
-    const refreshTokenExpiresIn = process.env.JWT_REFRESH_TTL || '604800';
+    // Convertir a número
+    const accessTokenExpiresIn = parseInt(process.env.JWT_ACCESS_TTL || '900');
+    const refreshTokenExpiresIn = parseInt(process.env.JWT_REFRESH_TTL || '604800');
+
+    console.log('Generating tokens with expiration:', {
+      access: accessTokenExpiresIn + 's',
+      refresh: refreshTokenExpiresIn + 's',
+      userId,
+      role
+    });
 
     const accessToken = this.jwtService.sign(
       { sub: userId, role },
-      { 
-        secret: process.env.JWT_ACCESS_SECRET, 
-        expiresIn: accessTokenExpiresIn as any
+      {
+        secret: process.env.JWT_ACCESS_SECRET || 'default-secret-change-me',
+        expiresIn: accessTokenExpiresIn  // ← Ahora es número
       },
     );
 
     const refreshToken = this.jwtService.sign(
       { sub: userId, role },
-      { 
-        secret: process.env.JWT_REFRESH_SECRET, 
-        expiresIn: refreshTokenExpiresIn as any
+      {
+        secret: process.env.JWT_REFRESH_SECRET || 'default-refresh-secret-change-me',
+        expiresIn: refreshTokenExpiresIn  // ← Ahora es número
       },
     );
 

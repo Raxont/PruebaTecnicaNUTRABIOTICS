@@ -13,15 +13,30 @@ export async function apiFetch<T = any>(path: string, options: RequestInit = {})
     headers.Authorization = `Bearer ${token}`;
   }
 
+  console.log(`API Request: ${options.method || 'GET'} ${API_BASE}${path}`, { hasToken: !!token }); // Debug
+
   const response = await fetch(`${API_BASE}${path}`, {
     credentials: 'include',
     ...options,
     headers,
   });
 
+  console.log(`API Response: ${response.status}`, path); // Debug
+
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(errorText || `API request failed: ${response.status}`);
+    let errorMessage = `API request failed: ${response.status}`;
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.message || errorData.error || errorMessage;
+    } catch (e) {
+      // Si no se puede parsear el JSON, usar texto plano
+      try {
+        errorMessage = await response.text() || errorMessage;
+      } catch (textError) {
+        // Mantener el mensaje por defecto
+      }
+    }
+    throw new Error(errorMessage);
   }
 
   if (response.status === 204) {
