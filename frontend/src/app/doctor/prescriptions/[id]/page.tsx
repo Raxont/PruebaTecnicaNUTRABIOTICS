@@ -2,17 +2,20 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { apiFetch, apiFetchBlob } from '@/lib/api';
 import { Prescription } from '@/lib/types';
 import ProtectedPage from '@/components/ProtectedPage';
 import SiteHeader from '@/components/SiteHeader';
+import Toast from '@/components/Toast';
 
 export default function DoctorPrescriptionDetailPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const [prescription, setPrescription] = useState<Prescription | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
     if (!params?.id) return;
@@ -20,6 +23,13 @@ export default function DoctorPrescriptionDetailPage() {
       .then(setPrescription)
       .catch((err) => setError(err.message));
   }, [params?.id]);
+
+  useEffect(() => {
+    const toastParam = searchParams?.get('toast');
+    if (toastParam === 'created') {
+      setToast({ message: 'Prescripción creada correctamente.', type: 'success' });
+    }
+  }, [searchParams]);
 
   const handleDownload = async (type: 'pdf' | 'qr') => {
     if (!prescription) return;
@@ -30,8 +40,14 @@ export default function DoctorPrescriptionDetailPage() {
         `/prescriptions/${prescription.id}/${type}`,
         `prescription-${prescription.id}.${ext}`,
       );
+      setToast({
+        message: type === 'pdf' ? 'PDF descargado correctamente.' : 'QR descargado correctamente.',
+        type: 'success',
+      });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al descargar');
+      const message = err instanceof Error ? err.message : 'Error al descargar';
+      setError(message);
+      setToast({ message, type: 'error' });
     } finally {
       setDownloading(null);
     }
@@ -118,6 +134,12 @@ export default function DoctorPrescriptionDetailPage() {
         ) : (
           <div className="card">Cargando prescripción...</div>
         )}
+        <Toast
+          open={Boolean(toast)}
+          message={toast?.message ?? ''}
+          type={toast?.type ?? 'success'}
+          onClose={() => setToast(null)}
+        />
       </main>
     </ProtectedPage>
   );

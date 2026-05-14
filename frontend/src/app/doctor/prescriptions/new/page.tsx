@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { apiFetch } from '@/lib/api';
 import ProtectedPage from '@/components/ProtectedPage';
 import SiteHeader from '@/components/SiteHeader';
+import Toast from '@/components/Toast';
 
 interface Item {
   name: string;
@@ -22,6 +23,7 @@ export default function DoctorPrescriptionNewPage() {
   ]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const updateItem = (index: number, field: keyof Item, value: string) => {
     setItems((current) => current.map((item, i) => (i === index ? { ...item, [field]: value } : item)));
@@ -47,9 +49,11 @@ export default function DoctorPrescriptionNewPage() {
         body: JSON.stringify(body),
       });
 
-      router.push(`/doctor/prescriptions/${result.id}`);
+      router.push(`/doctor/prescriptions/${result.id}?toast=created`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al crear la receta');
+      const message = err instanceof Error ? err.message : 'Error al crear la receta';
+      setError(message);
+      setToast({ message, type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -146,6 +150,12 @@ export default function DoctorPrescriptionNewPage() {
             {error && <div className="alert">{error}</div>}
           </form>
         </div>
+        <Toast
+          open={Boolean(toast)}
+          message={toast?.message ?? ''}
+          type={toast?.type ?? 'success'}
+          onClose={() => setToast(null)}
+        />
       </main>
     </ProtectedPage>
   );

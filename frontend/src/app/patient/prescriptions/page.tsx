@@ -6,6 +6,7 @@ import { apiFetch, apiFetchBlob } from '@/lib/api';
 import { Prescription } from '@/lib/types';
 import ProtectedPage from '@/components/ProtectedPage';
 import SiteHeader from '@/components/SiteHeader';
+import Toast from '@/components/Toast';
 
 interface Filters {
   status: string;
@@ -41,6 +42,7 @@ export default function PatientPrescriptionsPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const buildQuery = useCallback((f: Filters, page: number) => {
     const params = new URLSearchParams();
@@ -116,9 +118,12 @@ export default function PatientPrescriptionsPage() {
     setError(null);
     try {
       await apiFetch<Prescription>(`/prescriptions/${id}/consume`, { method: 'PUT' });
+      setToast({ message: 'Prescripción consumida correctamente.', type: 'success' });
       await loadPrescriptions(appliedFilters, pagination.page);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al marcar como consumida');
+      const message = err instanceof Error ? err.message : 'Error al marcar como consumida';
+      setError(message);
+      setToast({ message, type: 'error' });
     }
   };
 
@@ -126,8 +131,11 @@ export default function PatientPrescriptionsPage() {
     setDownloadingId(id);
     try {
       await apiFetchBlob(`/prescriptions/${id}/pdf`, `prescription-${id}.pdf`);
+      setToast({ message: 'PDF descargado correctamente.', type: 'success' });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al descargar PDF');
+      const message = err instanceof Error ? err.message : 'Error al descargar PDF';
+      setError(message);
+      setToast({ message, type: 'error' });
     } finally {
       setDownloadingId(null);
     }
@@ -207,9 +215,9 @@ export default function PatientPrescriptionsPage() {
                 Limpiar filtros
               </button>
             )}
-            {/* {hasActiveFilters && (
+            {hasActiveFilters && (
               <span className="filter-badge">Filtros activos</span>
-            )} */}
+            )}
           </div>
         </div>
 
@@ -229,7 +237,7 @@ export default function PatientPrescriptionsPage() {
             <>
               <div style={{ marginBottom: 12, color: '#6b7280', fontSize: '0.9rem' }}>
                 {pagination.total} resultado{pagination.total !== 1 ? 's' : ''}
-                {/* {hasActiveFilters ? ' con filtros aplicados' : ''} */}
+                {hasActiveFilters ? ' con filtros aplicados' : ''}
               </div>
               <table className="table">
                 <thead>
@@ -357,6 +365,12 @@ export default function PatientPrescriptionsPage() {
             </>
           )}
         </div>
+        <Toast
+          open={Boolean(toast)}
+          message={toast?.message ?? ''}
+          type={toast?.type ?? 'success'}
+          onClose={() => setToast(null)}
+        />
       </main>
 
       <style jsx>{`

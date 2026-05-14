@@ -16,6 +16,11 @@ export class AuthService {
   async signUp(signUpDto: SignUpDto, role: UserRole = UserRole.PATIENT): Promise<AuthResponseDto> {
     const { email, password, firstName, lastName } = signUpDto;
 
+    // Validate required fields
+    if (!email || !password || !firstName || !lastName) {
+      throw new BadRequestException('Missing required fields: email, password, firstName, lastName');
+    }
+
     // Check if user already exists
     const existingUser = await this.prisma.user.findUnique({
       where: { email },
