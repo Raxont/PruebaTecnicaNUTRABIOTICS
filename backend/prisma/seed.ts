@@ -7,7 +7,10 @@ async function main() {
   console.log('🌱 Starting database seeding...');
 
   // Hash password for all users
-  const hashedPassword = await bcrypt.hash('password123', 10);
+  const hashedPasswordAdmin = await bcrypt.hash('admin123', 10);
+  const hashedPasswordDoctor = await bcrypt.hash('dr123', 10);
+  const hashedPasswordPatient = await bcrypt.hash('patient123', 10);
+
 
   // Create Admin User
   const adminUser = await prisma.user.upsert({
@@ -15,7 +18,7 @@ async function main() {
     update: {},
     create: {
       email: 'admin@test.com',
-      password: hashedPassword,
+      password: hashedPasswordAdmin,
       firstName: 'Admin',
       lastName: 'User',
       role: UserRole.ADMIN,
@@ -28,7 +31,7 @@ async function main() {
     update: {},
     create: {
       email: 'dr@test.com',
-      password: hashedPassword,
+      password: hashedPasswordDoctor,
       firstName: 'Dr. Maria',
       lastName: 'Gonzalez',
       role: UserRole.DOCTOR,
@@ -51,7 +54,7 @@ async function main() {
     update: {},
     create: {
       email: 'patient@test.com',
-      password: hashedPassword,
+      password: hashedPasswordPatient,
       firstName: 'Ana',
       lastName: 'Molina',
       role: UserRole.PATIENT,
@@ -214,9 +217,9 @@ async function main() {
 
   console.log('✅ Database seeded successfully!');
   console.log('📧 Test accounts created:');
-  console.log('   Admin: admin@test.com / password123');
-  console.log('   Doctor: dr@test.com / password123');
-  console.log('   Patient: patient@test.com / password123');
+  console.log('   Admin: admin@test.com / admin123');
+  console.log('   Doctor: dr@test.com / dr123');
+  console.log('   Patient: patient@test.com / patient123');
 }
 
 main()

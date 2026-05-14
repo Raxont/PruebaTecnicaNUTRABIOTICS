@@ -45,3 +45,39 @@ export async function apiFetch<T = any>(path: string, options: RequestInit = {})
 
   return (await response.json()) as T;
 }
+
+export async function apiFetchBlob(
+  path: string,
+  filename: string,
+): Promise<void> {
+  const token = getAccessToken();
+  const headers: Record<string, string> = {};
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_BASE}${path}`, {
+    credentials: 'include',
+    headers,
+  });
+
+  if (!response.ok) {
+    let errorMessage = `API request failed: ${response.status}`;
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.message || errorData.error || errorMessage;
+    } catch (_) {}
+    throw new Error(errorMessage);
+  }
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}

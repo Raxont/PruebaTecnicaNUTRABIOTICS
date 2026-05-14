@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { apiFetch } from '@/lib/api';
+import { apiFetch, apiFetchBlob } from '@/lib/api';
 import { Prescription } from '@/lib/types';
 import ProtectedPage from '@/components/ProtectedPage';
 import SiteHeader from '@/components/SiteHeader';
@@ -12,6 +12,7 @@ export default function DoctorPrescriptionDetailPage() {
   const params = useParams();
   const [prescription, setPrescription] = useState<Prescription | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState<string | null>(null);
 
   useEffect(() => {
     if (!params?.id) return;
@@ -19,6 +20,22 @@ export default function DoctorPrescriptionDetailPage() {
       .then(setPrescription)
       .catch((err) => setError(err.message));
   }, [params?.id]);
+
+  const handleDownload = async (type: 'pdf' | 'qr') => {
+    if (!prescription) return;
+    setDownloading(type);
+    try {
+      const ext = type === 'pdf' ? 'pdf' : 'png';
+      await apiFetchBlob(
+        `/prescriptions/${prescription.id}/${type}`,
+        `prescription-${prescription.id}.${ext}`,
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al descargar');
+    } finally {
+      setDownloading(null);
+    }
+  };
 
   return (
     <ProtectedPage allowedRoles={['DOCTOR']}>
@@ -39,11 +56,10 @@ export default function DoctorPrescriptionDetailPage() {
         {prescription ? (
           <>
             <div className="card" style={{ marginBottom: 16 }}>
+              <p><strong>Código:</strong> {prescription.code}</p>
               <p>
-                <strong>Código:</strong> {prescription.code}
-              </p>
-              <p>
-                <strong>Paciente:</strong> {prescription.patient?.user.firstName ?? prescription.patientEmail ?? 'Paciente externo'}
+                <strong>Paciente:</strong>{' '}
+                {prescription.patient?.user.firstName ?? prescription.patientEmail ?? 'Paciente externo'}
               </p>
               <p>
                 <strong>Estado:</strong>{' '}
@@ -55,27 +71,23 @@ export default function DoctorPrescriptionDetailPage() {
                 <strong>Fecha:</strong> {new Date(prescription.createdAt).toLocaleDateString('es-ES')}
               </p>
               {prescription.notes && (
-                <p>
-                  <strong>Notas:</strong> {prescription.notes}
-                </p>
+                <p><strong>Notas:</strong> {prescription.notes}</p>
               )}
               <div className="page-actions">
-                <a
+                <button
                   className="button button-primary"
-                  href={`${process.env.NEXT_PUBLIC_API_BASE_URL}/prescriptions/${prescription.id}/pdf`}
-                  target="_blank"
-                  rel="noreferrer"
+                  onClick={() => handleDownload('pdf')}
+                  disabled={downloading !== null}
                 >
-                  Descargar PDF
-                </a>
-                <a
+                  {downloading === 'pdf' ? 'Descargando...' : 'Descargar PDF'}
+                </button>
+                <button
                   className="button button-secondary"
-                  href={`${process.env.NEXT_PUBLIC_API_BASE_URL}/prescriptions/${prescription.id}/qr`}
-                  target="_blank"
-                  rel="noreferrer"
+                  onClick={() => handleDownload('qr')}
+                  disabled={downloading !== null}
                 >
-                  Descargar QR
-                </a>
+                  {downloading === 'qr' ? 'Descargando...' : 'Descargar QR'}
+                </button>
               </div>
             </div>
 
