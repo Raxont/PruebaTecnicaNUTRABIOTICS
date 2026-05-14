@@ -52,6 +52,31 @@ export class PrescriptionsController {
     res.send(pdfBuffer);
   }
 
+  /**
+   * Get QR code for prescription
+   */
+  @Get(':id/qr')
+  @Roles('DOCTOR', 'PATIENT', 'ADMIN')
+  async getPrescriptionQr(
+    @Param('id') id: string,
+    @Request() req,
+    @Res() res: Response,
+  ): Promise<void> {
+    // Verify access to prescription
+    await this.prescriptionsService.getPrescriptionForUser(id, req.user);
+
+    const qrDataUrl = await this.prescriptionsService.generatePrescriptionQr(id);
+    const qrBuffer = Buffer.from(qrDataUrl.split(',')[1], 'base64');
+
+    res.set({
+      'Content-Type': 'image/png',
+      'Content-Disposition': `attachment; filename="prescription-${id}-qr.png"`,
+      'Content-Length': qrBuffer.length,
+    });
+
+    res.send(qrBuffer);
+  }
+
   @Get('doctor/:doctorId')
   @Roles('DOCTOR', 'ADMIN')
   async getPrescriptionsByDoctor(@Param('doctorId') doctorId: string): Promise<PrescriptionResponseDto[]> {

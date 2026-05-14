@@ -152,9 +152,9 @@ export class AuthService {
 
     // Access Token (corta duración)
     res.cookie('accessToken', accessToken, {
-      httpOnly: true,        // No accesible desde JavaScript
-      secure: process.env.NODE_ENV === 'production', // Solo HTTPS en producción
-      sameSite: 'strict',    // CSRF protection
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
       maxAge: accessTokenExpiresIn,
       path: '/',
     });
@@ -163,7 +163,7 @@ export class AuthService {
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax',
       maxAge: refreshTokenExpiresIn,
       path: '/',
     });
@@ -184,8 +184,8 @@ export class AuthService {
    * Logout: limpia las cookies
    */
   logout(res: Response) {
-    res.clearCookie('accessToken', { path: '/' });
-    res.clearCookie('refreshToken', { path: '/' });
+    res.clearCookie('accessToken', { path: '/', domain: 'localhost' });
+    res.clearCookie('refreshToken', { path: '/', domain: 'localhost' });
     return { message: 'Logged out successfully' };
   }
 

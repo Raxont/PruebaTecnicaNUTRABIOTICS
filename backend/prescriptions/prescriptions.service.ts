@@ -299,6 +299,12 @@ export class PrescriptionsService {
     return this.pdfService.generatePrescriptionPdf(prescription);
   }
 
+  async generatePrescriptionQr(id: string): Promise<string> {
+    // Verify prescription exists
+    await this.getPrescription(id);
+    return this.pdfService.generatePrescriptionQr(id);
+  }
+
   async getMyPrescriptions(userId: string, filters: PrescriptionFiltersDto) {
     const patient = await this.prisma.patient.findUnique({
       where: { userId },

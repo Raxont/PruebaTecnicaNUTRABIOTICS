@@ -6,9 +6,9 @@ Backend API para un sistema de gestión de prescripciones médicas construido co
 
 - **Autenticación** con JWT (access token y refresh token)
 - **Roles y permisos**: Admin, Médico, Paciente
-- **Gestión de prescripciones** médicas
+- **Gestión de prescripciones** médicas con códigos QR
 - **Métricas y reportes** para administradores
-- **PDF download** de prescripciones (integración pendiente)
+- **Generación de PDFs** con códigos QR integrados
 
 ## 🚀 Características
 
@@ -28,7 +28,8 @@ Backend API para un sistema de gestión de prescripciones médicas construido co
 #### Paciente
 - Ver sus prescripciones
 - Cambiar estado de prescripción (pending → consumed)
-- Descargar PDF de prescripción
+- Descargar PDF de prescripción con código QR
+- Acceder a códigos QR individuales de prescripciones
 
 ## 🛠️ Stack Tecnológico
 
@@ -53,52 +54,107 @@ Backend API para un sistema de gestión de prescripciones médicas construido co
 ### Opción 1: Con Docker (Recomendado)
 
 ```bash
-# Clonar y entrar al directorio
+# 1. Clonar el repositorio
+git clone <repository-url>
 cd PruebaTecnicaNUTRABIOTICS
 
-# Crear archivo .env en backend/ con las variables necesarias
+# 2. Configurar variables de entorno
 cp backend/.env.example backend/.env
+# Editar backend/.env con tus configuraciones
 
-# Iniciar servicios
+# 3. Iniciar servicios con Docker
 docker-compose up -d
 
-# Las migraciones se ejecutarán automáticamente
-# El API estará disponible en http://localhost:3001
-# Adminer en http://localhost:8080
+# 4. Ejecutar migraciones y seed (opcional, para datos de prueba)
+docker-compose exec backend npm run prisma:migrate
+docker-compose exec backend npm run prisma:seed
+
+# Servicios disponibles:
+# - API Backend: http://localhost:3001
+# - Base de datos: localhost:5432
+# - Adminer (DB UI): http://localhost:8080
 ```
 
 ### Opción 2: Instalación Local
 
 ```bash
-# Instalar dependencias
+# 1. Instalar dependencias
 cd backend
 npm install
 
-# Generar Prisma Client
+# 2. Configurar base de datos PostgreSQL
+# Crear base de datos 'nutrabitics_db' o actualizar .env
+
+# 3. Generar Prisma Client
 npm run prisma:generate
 
-# Ejecutar migraciones
+# 4. Ejecutar migraciones
 npm run prisma:migrate
 
-# Ejecutar en desarrollo
+# 5. Ejecutar seed (datos de prueba)
+npm run prisma:seed
+
+# 6. Ejecutar en desarrollo
 npm run start:dev
+
+# La API estará disponible en http://localhost:3001
 ```
 
 ## 📝 Variables de Entorno
 
-Crear archivo `backend/.env`:
+Crear archivo `backend/.env` basado en `.env.example`:
 
 ```env
-DATABASE_URL="postgresql://user:password@localhost:5432/nutrabitics_db"
-JWT_ACCESS_SECRET="your_secret_key_here_minimum_32_characters"
+# Base de datos
+DATABASE_URL="postgresql://nutrabitics_user:nutrabitics_password@localhost:5432/nutrabitics_db"
+
+# JWT Configuration
+JWT_ACCESS_SECRET="your_secret_key_here_minimum_32_characters_long"
 JWT_REFRESH_SECRET="your_refresh_secret_here_minimum_32_characters"
-JWT_ACCESS_TTL=900                    # 15 minutos
-JWT_REFRESH_TTL=604800               # 7 días
-APP_ORIGIN="http://localhost:3000"   # Frontend URL
-PORT=3001
+JWT_ACCESS_TTL=900                    # 15 minutos en segundos
+JWT_REFRESH_TTL=604800               # 7 días en segundos
+
+# Aplicación
+APP_ORIGIN="http://localhost:3000"   # URL del frontend
+PORT=3001                            # Puerto del servidor
+
+# Configuración adicional (opcional)
+NODE_ENV="development"               # Entorno de ejecución
 ```
 
-## 🔌 Endpoints API
+## � Scripts Disponibles
+
+```bash
+cd backend
+
+# Desarrollo
+npm run start:dev          # Iniciar en modo desarrollo con hot reload
+npm run start:debug        # Iniciar en modo debug
+npm run start:prod         # Iniciar en producción
+
+# Build
+npm run build              # Compilar TypeScript
+npm run prebuild           # Limpiar directorio dist
+
+# Testing
+npm run test               # Ejecutar tests unitarios
+npm run test:watch         # Tests en modo watch
+npm run test:cov           # Tests con reporte de cobertura
+npm run test:e2e           # Tests end-to-end
+npm run test:debug         # Debug de tests
+
+# Base de datos (Prisma)
+npm run prisma:generate    # Generar Prisma Client
+npm run prisma:migrate     # Ejecutar migraciones
+npm run prisma:studio      # Abrir Prisma Studio (UI de BD)
+npm run prisma:seed        # Ejecutar seed de datos de prueba
+
+# Código
+npm run lint               # Ejecutar ESLint
+npm run format             # Formatear código con Prettier
+```
+
+## 🗄️ Gestión de Base de Datos
 
 ### Autenticación
 - `POST /auth/sign-up` - Registro de pacientes
@@ -122,9 +178,13 @@ PORT=3001
 
 ### Prescripciones
 - `POST /prescriptions` - Crear prescripción (Doctor only)
+- `GET /prescriptions` - Listar prescripciones con filtros y paginación
 - `GET /prescriptions/:id` - Obtener prescripción
+- `GET /prescriptions/:id/pdf` - Descargar PDF de prescripción con QR
+- `GET /prescriptions/:id/qr` - Descargar código QR de prescripción
 - `GET /prescriptions/doctor/:doctorId` - Prescripciones por médico
 - `GET /prescriptions/patient/:patientId` - Prescripciones por paciente
+- `PUT /prescriptions/:id/consume` - Consumir prescripción (Patient only)
 - `PATCH /prescriptions/:id/status` - Cambiar estado (Patient only)
 
 ### Admin
@@ -191,6 +251,21 @@ El endpoint `/admin/metrics` retorna:
 }
 ```
 
+## 👥 Cuentas de Prueba
+
+Después de ejecutar `npm run prisma:seed`, estarán disponibles las siguientes cuentas:
+
+| Rol | Email | Contraseña | Descripción |
+|-----|-------|------------|-------------|
+| **Admin** | `admin@test.com` | `password123` | Acceso completo al sistema |
+| **Doctor** | `dr@test.com` | `password123` | Dr. Maria Gonzalez - Médico general |
+| **Patient** | `patient@test.com` | `password123` | Ana Molina - Paciente de prueba |
+
+### Datos de Prueba Incluidos:
+- 6 prescripciones de ejemplo (algunas pendientes, otras consumidas)
+- Medicamentos comunes: Paracetamol, Ibuprofeno, Amoxicilina, etc.
+- Estados de prescripción variados para testing
+
 ## 🧪 Testing
 
 ```bash
@@ -246,6 +321,19 @@ docker-compose ps
 docker-compose logs postgres
 ```
 
+### Resetear datos de prueba
+```bash
+# Ejecutar seed nuevamente (sobrescribe datos existentes)
+cd backend
+npm run prisma:seed
+```
+
+### Problemas con códigos QR
+```bash
+# Verificar que APP_ORIGIN esté configurado correctamente en .env
+# El QR genera URLs hacia el frontend configurado
+```
+
 ## ✅ Checklist de Implementación
 
 - [x] Schema Prisma con modelos
@@ -256,7 +344,8 @@ docker-compose logs postgres
 - [x] Módulo de pacientes  
 - [x] Módulo de prescripciones
 - [x] Endpoint de métricas
-- [ ] Download PDF de prescripciones
+- [x] **Download PDF de prescripciones con códigos QR**
+- [x] **Endpoint para códigos QR individuales**
 - [ ] Email notifications
 - [ ] Rate limiting
 - [ ] Swagger/OpenAPI docs
@@ -267,6 +356,23 @@ docker-compose logs postgres
 - Los tokens JWT expiran según JWT_ACCESS_TTL y JWT_REFRESH_TTL
 - Las prescripciones se crean con estado PENDING por defecto
 - Solo los pacientes pueden cambiar el estado de sus prescripciones
+
+## 🔳 Códigos QR en Prescripciones
+
+### Funcionalidades QR Implementadas:
+
+1. **PDF con QR Integrado**: Los PDFs de prescripción incluyen automáticamente un código QR que enlaza a la vista web de la prescripción
+2. **Endpoint QR Independiente**: `GET /prescriptions/:id/qr` retorna el código QR como imagen PNG
+3. **URL del QR**: `http://localhost:3000/patient/prescriptions/{prescriptionId}` (configurable via APP_ORIGIN)
+
+### Beneficios:
+- **Acceso Rápido**: Los pacientes pueden escanear el QR desde el PDF impreso para acceder digitalmente
+- **Verificación**: Los códigos QR facilitan la verificación de autenticidad de prescripciones
+- **Integración Móvil**: Compatible con aplicaciones móviles de lectura de QR
+
+### Seguridad:
+- Los códigos QR respetan las mismas reglas de autorización que los endpoints de API
+- Solo usuarios autorizados pueden acceder a las prescripciones vía QR
 
 ## 👤 Autor
 

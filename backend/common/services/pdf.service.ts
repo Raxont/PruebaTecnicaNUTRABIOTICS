@@ -116,9 +116,26 @@ export class PdfService {
         .fontSize(10)
         .font('Helvetica')
         .text('Esta receta fue generada electrónicamente por NUTRABITICS.', { align: 'center' })
-        .text('Conserve este documento para sus registros médicos.', { align: 'center' });
+        .text('Conserve este documento para sus registros médicos.', { align: 'center' })
+        .moveDown(1);
+
+      // Add QR Code
+      const qrSize = 100;
+      const pageWidth = doc.page.width;
+      const qrX = (pageWidth - qrSize) / 2; // Center the QR code
+      doc.text('Escanee el código QR para ver la receta en línea:', { align: 'center' })
+        .moveDown(0.5);
+      doc.image(qrBuffer, qrX, doc.y, { width: qrSize, height: qrSize });
 
       doc.end();
     });
+  }
+
+  /**
+   * Generate QR code for a prescription
+   */
+  async generatePrescriptionQr(prescriptionId: string): Promise<string> {
+    const qrDataUrl = await QRCode.toDataURL(`http://localhost:3000/patient/prescriptions/${prescriptionId}`);
+    return qrDataUrl;
   }
 }

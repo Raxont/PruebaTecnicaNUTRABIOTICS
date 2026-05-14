@@ -65,7 +65,7 @@ export class AuthController {
     res.cookie('accessToken', newAccessToken.accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax',
       maxAge: parseInt(process.env.JWT_ACCESS_TTL) * 1000,
       path: '/',
     });
