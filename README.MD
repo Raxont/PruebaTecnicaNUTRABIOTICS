@@ -52,7 +52,7 @@ docker-compose up -d
 
 Servicios disponibles:
 - API Backend: http://localhost:3001
-- Swagger UI: http://localhost:3001/api
+- Swagger UI: http://localhost:3001/docs
 - Base de datos: localhost:5432
 - Adminer (DB UI): http://localhost:8080
 

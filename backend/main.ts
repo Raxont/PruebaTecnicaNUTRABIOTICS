@@ -873,13 +873,13 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
-  // 📚 Swagger UI en /api
-  app.use('/api', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+  // 📚 Swagger UI en /docs
+  app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
   const port = process.env.PORT || 3001;
   await app.listen(port);
   console.log(`🚀 Application is running on: http://localhost:${port}`);
-  console.log(`📚 API Docs available at: http://localhost:${port}/api`);
+  console.log(`📚 API Docs available at: http://localhost:${port}/docs`);
   console.log(`🔐 Security: Helmet, CORS, ValidationPipe, Rate Limiting (100 req/min)`);
   console.log(`🍪 HTTP-Only Cookies: Enabled`);
 }

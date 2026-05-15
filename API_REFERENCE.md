@@ -1,7 +1,7 @@
 # API Reference — NUTRABITICS
 
 Base URL: `http://localhost:3001`  
-Swagger UI: `http://localhost:3001/api`
+Swagger UI: `http://localhost:3001/docs`
 
 Todos los endpoints protegidos requieren:
 ```

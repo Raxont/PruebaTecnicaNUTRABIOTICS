@@ -69,6 +69,6 @@ echo    - npm run start:dev
 echo.
 echo 4. Accede a:
 echo    - API: http://localhost:3001
-echo    - Docs: http://localhost:3001/api
+echo    - Docs: http://localhost:3001/docs
 echo.
 pause

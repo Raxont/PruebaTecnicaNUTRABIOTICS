@@ -105,7 +105,7 @@ Configurados con Jest + ts-jest + jest-environment-jsdom + @testing-library/reac
 
 - `docker-compose.yml` — PostgreSQL 16, Adminer, Backend NestJS
 - `Dockerfile` — imagen optimizada del backend
-- `main.ts` — Helmet, cookie-parser, ValidationPipe global, CORS, Swagger UI en `/api`
+- `main.ts` — Helmet, cookie-parser, ValidationPipe global, CORS, Swagger UI en `/docs`
 - `app.module.ts` — ThrottlerModule (100 req/min por IP), todos los módulos registrados
 
 ---
