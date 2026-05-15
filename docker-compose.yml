@@ -1,19 +1,22 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:16-alpine
     container_name: nutrabitics_db
     environment:
-      POSTGRES_USER: nutrabitics_user
-      POSTGRES_PASSWORD: nutrabitics_password
-      POSTGRES_DB: nutrabitics_db
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - nutrabitics_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   adminer:
     image: adminer:latest
@@ -21,7 +24,8 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - nutrabitics_network
 
@@ -31,23 +35,24 @@ services:
       dockerfile: Dockerfile
     container_name: nutrabitics_backend
     environment:
-      DATABASE_URL: postgresql://nutrabitics_user:nutrabitics_password@postgres:5432/nutrabitics_db
-      JWT_ACCESS_SECRET: your_secret_key_here_minimum_32_chars
-      JWT_REFRESH_SECRET: your_refresh_secret_here_minimum_32
-      JWT_ACCESS_TTL: 900
-      JWT_REFRESH_TTL: 604800
-      APP_ORIGIN: http://localhost:3000
-      PORT: 3001
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_ACCESS_TTL: ${JWT_ACCESS_TTL}
+      JWT_REFRESH_TTL: ${JWT_REFRESH_TTL}
+      APP_ORIGIN: ${APP_ORIGIN}
+      PORT: ${PORT}
     ports:
       - "3001:3001"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - nutrabitics_network
     command: >
       sh -c "npm run prisma:generate &&
              npm run prisma:migrate &&
-             npm run start:dev"
+             npm run start:prod"
 
 volumes:
   postgres_data:
