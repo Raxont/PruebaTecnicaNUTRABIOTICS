@@ -1,200 +1,90 @@
-# 🧪 Testing NUTRABITICS Backend API
+# Testing — NUTRABITICS API
 
-Guía completa para testear todos los endpoints de la API.
-
----
-
-## 🚀 Preparación
-
-### 1. Iniciar el servidor
+## Preparación
 
 ```bash
-# Con Docker (recomendado)
 docker-compose up -d
 
-# O localmente
-cd backend
-npm run start:dev
+# Verificar backend
+curl http://localhost:3001/auth/me
+# → 401 Unauthorized (esperado)
 ```
 
-### 2. Verificar que está corriendo
+## Cuentas de Prueba (seed)
 
 ```bash
-# Debería retornar un error 401 (esperado porque no hay token)
-curl http://localhost:3001/users
-
-# Resultado: {"statusCode":401,"message":"Unauthorized","timestamp":"2024-01-15T10:30:00Z"}
+cd backend && npm run prisma:seed
 ```
+
+| Rol | Email | Contraseña |
+|-----|-------|------------|
+| Admin | `admin@test.com` | `password123` |
+| Doctor | `dr@test.com` | `password123` |
+| Paciente | `patient@test.com` | `password123` |
 
 ---
 
-## 🔐 Paso 1: Autenticación
-
-### 1.1 Registrarse como Paciente
+## Paso 1 — Login
 
 ```bash
-curl -X POST http://localhost:3001/auth/sign-up \
+# Login como Admin
+curl -X POST http://localhost:3001/auth/login \
   -H "Content-Type: application/json" \
-  -d '{
-    "email": "paciente@example.com",
-    "password": "SecurePass123!",
-    "firstName": "Juan",
-    "lastName": "Perez"
-  }'
-```
+  -d '{"email":"admin@test.com","password":"password123"}'
 
-**Respuesta esperada:**
-```json
-{
-  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
-    "id": "patient-id-12345",
-    "email": "paciente@example.com",
-    "firstName": "Juan",
-    "lastName": "Perez",
-    "role": "PATIENT"
-  }
-}
-```
+export ADMIN_TOKEN="<accessToken>"
 
-**Guarda los tokens:**
-```bash
-export PATIENT_ACCESS_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-export PATIENT_ID="patient-id-12345"
-```
-
-### 1.2 Login como Paciente
-
-```bash
-curl -X POST http://localhost:3001/auth/sign-in \
+# Login como Doctor
+curl -X POST http://localhost:3001/auth/login \
   -H "Content-Type: application/json" \
-  -d '{
-    "email": "paciente@example.com",
-    "password": "SecurePass123!"
-  }'
+  -d '{"email":"dr@test.com","password":"password123"}'
+
+export DOCTOR_TOKEN="<accessToken>"
+
+# Login como Paciente
+curl -X POST http://localhost:3001/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"patient@test.com","password":"password123"}'
+
+export PATIENT_TOKEN="<accessToken>"
 ```
 
----
-
-## 👥 Paso 2: Crear Usuarios (Admin)
-
-**NOTA:** Primero necesitas crear un usuario ADMIN. Deberás actualizar manualmente la BD:
-
-```bash
-# Conectado a PostgreSQL:
-UPDATE "User" SET role = 'ADMIN' WHERE email = 'paciente@example.com';
-```
-
-O crea un admin directamente:
-
-```sql
-INSERT INTO "User" (id, email, password, "firstName", "lastName", role, "createdAt", "updatedAt")
-VALUES (
-  'admin-123',
-  'admin@example.com',
-  '$2b$10$...',  -- contraseña hasheada con bcrypt
-  'Administrador',
-  'Sistema',
-  'ADMIN',
-  NOW(),
-  NOW()
-);
-```
-
-### 2.1 Registrate como Admin (simulado)
-
-```bash
-# Primero registrate como paciente
-curl -X POST http://localhost:3001/auth/sign-up ...
-
-# Luego en BD, cambia el rol
-export ADMIN_ACCESS_TOKEN="tu_admin_token"
-```
-
-### 2.2 Crear un Médico
+## Paso 2 — Crear Usuario (Admin)
 
 ```bash
 curl -X POST http://localhost:3001/users \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $ADMIN_ACCESS_TOKEN" \
   -d '{
-    "email": "doctor@example.com",
-    "password": "DoctorPass123!",
-    "firstName": "Carlos",
-    "lastName": "Garcia",
+    "email": "nuevo.doctor@example.com",
+    "password": "Pass123!",
+    "firstName": "Ana",
+    "lastName": "López",
     "role": "DOCTOR"
   }'
 ```
 
-**Respuesta esperada:**
-```json
-{
-  "id": "doctor-id-456",
-  "email": "doctor@example.com",
-  "firstName": "Carlos",
-  "lastName": "Garcia",
-  "role": "DOCTOR"
-}
-```
-
-**Guarda el doctor ID:**
-```bash
-export DOCTOR_ID="doctor-id-456"
-export DOCTOR_ACCESS_TOKEN="nuevo_token_del_doctor"
-```
-
-### 2.3 Crear otro Paciente
+## Paso 3 — Ver Médicos y Pacientes
 
 ```bash
-curl -X POST http://localhost:3001/users \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $ADMIN_ACCESS_TOKEN" \
-  -d '{
-    "email": "otro.paciente@example.com",
-    "password": "PatientPass123!",
-    "firstName": "Maria",
-    "lastName": "Lopez",
-    "role": "PATIENT"
-  }'
+# Médicos
+curl http://localhost:3001/doctors \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
+
+# Pacientes
+curl http://localhost:3001/patients \
+  -H "Authorization: Bearer $DOCTOR_TOKEN"
 ```
 
-```bash
-export PATIENT2_ID="patient-id-789"
-```
-
----
-
-## 📋 Paso 3: Listar Usuarios
-
-```bash
-curl -X GET http://localhost:3001/users \
-  -H "Authorization: Bearer $ADMIN_ACCESS_TOKEN"
-```
-
-**Respuesta:** Array de usuarios
-
----
-
-## 👨‍⚕️ Paso 4: Ver Médicos
-
-```bash
-curl -X GET http://localhost:3001/doctors \
-  -H "Authorization: Bearer $PATIENT_ACCESS_TOKEN"
-```
-
-**Respuesta:** Array de médicos con detalles
-
----
-
-## 💊 Paso 5: Crear Prescripción (Médico)
+## Paso 4 — Crear Prescripción (Doctor)
 
 ```bash
 curl -X POST http://localhost:3001/prescriptions \
+  -H "Authorization: Bearer $DOCTOR_TOKEN" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $DOCTOR_ACCESS_TOKEN" \
   -d '{
-    "patientId": "'$PATIENT_ID'",
+    "patientEmail": "patient@test.com",
+    "notes": "Tomar con alimentos",
     "items": [
       {
         "name": "Amoxicilina",
@@ -206,260 +96,125 @@ curl -X POST http://localhost:3001/prescriptions \
         "name": "Paracetamol",
         "dosage": "500mg",
         "quantity": "20",
-        "instructions": "Una tableta cada 6-8 horas según sea necesario para el dolor"
-      },
-      {
-        "name": "Vitamina C",
-        "dosage": "1000mg",
-        "quantity": "30",
-        "instructions": "Una tableta diaria por la mañana"
+        "instructions": "Cada 6 horas según necesidad"
       }
     ]
   }'
+
+export PRESCRIPTION_ID="<id>"
 ```
 
-**Respuesta esperada:**
-```json
-{
-  "id": "rx-123",
-  "doctorId": "doctor-id-456",
-  "patientId": "patient-id-12345",
-  "status": "PENDING",
-  "items": [
-    {
-      "id": "item-1",
-      "name": "Amoxicilina",
-      "dosage": "500mg",
-      "quantity": 30,
-      "instructions": "Una cápsula cada 8 horas por 10 días"
-    },
-    ...
-  ],
-  "createdAt": "2024-01-15T10:30:00Z"
-}
-```
-
-**Guarda el prescription ID:**
-```bash
-export PRESCRIPTION_ID="rx-123"
-```
-
----
-
-## 👤 Paso 6: Ver Mis Prescripciones (Paciente)
+## Paso 5 — Ver Prescripciones
 
 ```bash
-curl -X GET http://localhost:3001/prescriptions/patient/$PATIENT_ID \
-  -H "Authorization: Bearer $PATIENT_ACCESS_TOKEN"
+# Mis prescripciones (paciente)
+curl "http://localhost:3001/me/prescriptions" \
+  -H "Authorization: Bearer $PATIENT_TOKEN"
+
+# Con filtros
+curl "http://localhost:3001/me/prescriptions?status=PENDING&page=1&limit=10" \
+  -H "Authorization: Bearer $PATIENT_TOKEN"
+
+# Prescripciones del doctor (filtra automáticamente)
+curl "http://localhost:3001/prescriptions" \
+  -H "Authorization: Bearer $DOCTOR_TOKEN"
+
+# Detalle
+curl "http://localhost:3001/prescriptions/$PRESCRIPTION_ID" \
+  -H "Authorization: Bearer $PATIENT_TOKEN"
 ```
 
-**Respuesta:** Array con la prescripción creada
-
----
-
-## 👨‍⚕️ Paso 7: Ver Mis Prescripciones (Médico)
+## Paso 6 — Descargar PDF y QR
 
 ```bash
-curl -X GET http://localhost:3001/prescriptions/doctor/$DOCTOR_ID \
-  -H "Authorization: Bearer $DOCTOR_ACCESS_TOKEN"
+# PDF
+curl "http://localhost:3001/prescriptions/$PRESCRIPTION_ID/pdf" \
+  -H "Authorization: Bearer $PATIENT_TOKEN" \
+  -o prescription.pdf
+
+# QR (PNG)
+curl "http://localhost:3001/prescriptions/$PRESCRIPTION_ID/qr" \
+  -H "Authorization: Bearer $PATIENT_TOKEN" \
+  -o prescription-qr.png
 ```
 
-**Respuesta:** Array con la prescripción creada
-
----
-
-## 📝 Paso 8: Cambiar Estado de Prescripción (Paciente)
+## Paso 7 — Consumir Prescripción (Paciente)
 
 ```bash
-curl -X PATCH http://localhost:3001/prescriptions/$PRESCRIPTION_ID/status \
+# Opción A
+curl -X PUT "http://localhost:3001/prescriptions/$PRESCRIPTION_ID/consume" \
+  -H "Authorization: Bearer $PATIENT_TOKEN"
+
+# Opción B
+curl -X PATCH "http://localhost:3001/prescriptions/$PRESCRIPTION_ID/status" \
+  -H "Authorization: Bearer $PATIENT_TOKEN" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $PATIENT_ACCESS_TOKEN" \
-  -d '{
-    "status": "CONSUMED"
-  }'
+  -d '{"status":"CONSUMED"}'
 ```
 
-**Respuesta esperada:**
-```json
-{
-  "id": "rx-123",
-  "status": "CONSUMED",
-  ...
-}
-```
-
----
-
-## 📊 Paso 9: Ver Métricas (Admin)
+## Paso 8 — Métricas (Admin)
 
 ```bash
-curl -X GET http://localhost:3001/admin/metrics \
-  -H "Authorization: Bearer $ADMIN_ACCESS_TOKEN"
+# General
+curl http://localhost:3001/admin/metrics \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
+
+# Con filtro de fechas
+curl "http://localhost:3001/admin/metrics?from=2024-01-01&to=2024-12-31" \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
 ```
 
-**Respuesta esperada:**
-```json
-{
-  "totalPatients": 2,
-  "totalDoctors": 1,
-  "totalPrescriptions": 1,
-  "prescriptionsByStatus": {
-    "pending": 0,
-    "consumed": 1
-  },
-  "prescriptionsByDay": [
-    {
-      "date": "2024-01-15",
-      "count": 1
-    }
-  ]
-}
-```
-
----
-
-## ❌ Paso 10: Pruebas de Error
-
-### 10.1 Sin Token
+## Paso 9 — Pruebas de Error
 
 ```bash
-curl -X GET http://localhost:3001/users
-# Error 401: Unauthorized
-```
+# Sin token → 401
+curl http://localhost:3001/prescriptions
 
-### 10.2 Token Inválido
-
-```bash
-curl -X GET http://localhost:3001/users \
-  -H "Authorization: Bearer invalid_token_123"
-# Error 401: Unauthorized
-```
-
-### 10.3 Permisos Insuficientes (Paciente intenta crear usuario)
-
-```bash
-curl -X POST http://localhost:3001/users \
+# Rol incorrecto (paciente intenta crear prescripción) → 403
+curl -X POST http://localhost:3001/prescriptions \
+  -H "Authorization: Bearer $PATIENT_TOKEN" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $PATIENT_ACCESS_TOKEN" \
-  -d '{...}'
-# Error 403: Forbidden - Insufficient permissions
+  -d '{}'
+
+# Recurso inexistente → 404
+curl http://localhost:3001/prescriptions/id-invalido \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
 ```
 
-### 10.4 Recurso No Encontrado
+---
+
+## Tests Frontend
 
 ```bash
-curl -X GET http://localhost:3001/users/invalid-id \
-  -H "Authorization: Bearer $ADMIN_ACCESS_TOKEN"
-# Error 404: User not found
+cd frontend
+
+# Todos los tests
+npm test
+
+# Con cobertura
+npm run test:coverage
+
+# Watch mode
+npm run test:watch
 ```
+
+Archivos de test:
+- `src/lib/auth.test.ts` — helpers de autenticación (localStorage, JWT validation)
+- `src/components/ProtectedPage.test.tsx` — guard de rutas por rol
 
 ---
 
-## 🧪 Con Postman (Recomendado)
-
-### 1. Importar colección
-
-```json
-{
-  "info": {
-    "name": "NUTRABITICS API",
-    "version": "1.0"
-  },
-  "item": [
-    {
-      "name": "Sign Up",
-      "request": {
-        "method": "POST",
-        "url": "http://localhost:3001/auth/sign-up",
-        "body": {
-          "mode": "raw",
-          "raw": "{...}"
-        }
-      }
-    },
-    ...
-  ]
-}
-```
-
-### 2. Utilizar el cliente REST
-
-- **Cliente:** Postman, Insomnia, VS Code REST Client
-- **Headers:** `Authorization: Bearer {token}`
-- **Content-Type:** `application/json`
-
----
-
-## 📊 Diagrama de Flujo de Testing
-
-```
-1️⃣ REGISTRO PACIENTE
-    ↓
-2️⃣ LOGIN PACIENTE
-    ↓
-3️⃣ CREAR ADMIN (en BD)
-    ↓
-4️⃣ CREAR MÉDICO (Admin)
-    ↓
-5️⃣ CREAR PRESCRIPCIÓN (Médico)
-    ↓
-6️⃣ VER MIS RX (Paciente)
-    ↓
-7️⃣ CAMBIAR ESTADO (Paciente)
-    ↓
-8️⃣ VER MÉTRICAS (Admin)
-    ↓
-9️⃣ PROBAR ERRORES
-```
-
----
-
-## 💾 Base de Datos - Verificación
-
-### Conectarse a PostgreSQL
+## Base de Datos — Verificación
 
 ```bash
-# Con Docker
+# Conectar a PostgreSQL
 docker exec -it nutrabitics_db psql -U nutrabitics_user -d nutrabitics_db
 
 # Queries útiles
-SELECT * FROM "User";
-SELECT * FROM "Prescription" JOIN "PrescriptionItem" ON "Prescription".id = "PrescriptionItem"."prescriptionId";
+SELECT id, email, role FROM "User";
+SELECT p.id, p.code, p.status, p."createdAt" FROM "Prescription" p ORDER BY p."createdAt" DESC;
 SELECT status, COUNT(*) FROM "Prescription" GROUP BY status;
+SELECT * FROM "PrescriptionItem" WHERE "prescriptionId" = '<id>';
 ```
 
 ---
-
-## ✅ Checklist de Testing
-
-- [ ] Login y registro funcionan
-- [ ] Tokens se generan correctamente
-- [ ] Guards protegen endpoints
-- [ ] CRUD de usuarios funciona
-- [ ] Crear prescripción funciona
-- [ ] Ver prescripciones por paciente/médico
-- [ ] Cambiar estado funciona
-- [ ] Métricas se calculan correctamente
-- [ ] Errores retornan códigos correctos
-- [ ] Validación de DTOs funciona
-
----
-
-## 🚀 Performance
-
-```bash
-# Medir velocidad de respuesta
-time curl -X GET http://localhost:3001/admin/metrics \
-  -H "Authorization: Bearer $ADMIN_ACCESS_TOKEN"
-```
-
----
-
-## 📝 Notas
-
-- Los tokens expiran en 15 minutos (access)
-- El refresh token dura 7 días
-- Las constraseñas se hashean con bcrypt
-- Los IDs se generan con CUID
-- Las timestamps están en UTC
-

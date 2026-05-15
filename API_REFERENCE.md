@@ -1,202 +1,169 @@
-# Quick Reference - NUTRABITICS Backend API
+# API Reference — NUTRABITICS
 
-## 🗺️ Flujo de la Aplicación
+Base URL: `http://localhost:3001`  
+Swagger UI: `http://localhost:3001/api`
 
+Todos los endpoints protegidos requieren:
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        PACIENTE                             │
-│  - Sign Up → Create Patient Profile                        │
-│  - Sign In → Get JWT Tokens                                │
-│  - Ver mis prescripciones                                  │
-│  - Cambiar estado: pending → consumed                      │
-│  - Descargar PDF                                           │
-└─────────────────┬───────────────────────────────────────────┘
-                  │
-        ┌─────────█─────────┐
-        │                   │
-        ▼                   ▼
-┌──────────────────┐  ┌──────────────────┐
-│    MÉDICO        │  │     ADMIN        │
-│  - Create Rx     │  │  - Ver métricas  │
-│  - Ver mis Rx    │  │  - Crear usuarios│
-│  - Consultar     │  │  - Asignar roles │
-│    pacientes     │  │                  │
-└──────────────────┘  └──────────────────┘
-```
-
-## 🔐 Componentes de Seguridad
-
-1. **JWT Authentication**
-   - Access Token: 15 minutos
-   - Refresh Token: 7 días
-
-2. **Role-Based Access Control (RBAC)**
-   - ADMIN, DOCTOR, PATIENT
-
-3. **Decoradores**
-   - `@Roles('ADMIN')` - Restringe acceso
-   - `@UseGuards(AuthGuard('jwt'))` - Requiere autenticación
-
-## 📊 Modelos de Datos
-
-### User
-```
-- id: CUID
-- email: unique
-- password: bcrypt (salt: 10)
-- firstName, lastName
-- role: ADMIN | DOCTOR | PATIENT
-- timestamps
-```
-
-### Prescription
-```
-- id: CUID
-- doctorId:FK → Doctor
-- patientId: FK → Patient
-- status: PENDING | CONSUMED
-- items: PrescriptionItem[]
-- timestamps
-```
-
-### PrescriptionItem
-```
-- id: CUID
-- prescriptionId: FK → Prescription
-- name: string (medicamento)
-- dosage: string (ej: "500mg")
-- quantity: number
-- instructions: string (indicaciones)
-```
-
-## 📡 Endpoints por Rol
-
-### 🔓 Públicos
-- `POST /auth/sign-up` - Registro
-- `POST /auth/sign-in` - Login
-
-### 👤 Paciente
-- `GET /patients/:id` - Mi perfil
-- `GET /prescriptions/patient/:patientId` - Mis Rx
-- `PATCH /prescriptions/:id/status` - Cambiar estado
-
-### 👨‍⚕️ Médico
-- `GET /doctors` - Listar médicos
-- `GET /doctors/:id` - Perfil médico
-- `POST /prescriptions` - Crear Rx
-- `GET /prescriptions/doctor/:doctorId` - Mis Rx
-
-### 👨‍💼 Admin
-- `POST /users` - Crear usuario
-- `GET /users` - Listar usuarios
-- `GET /users/:id` - Usuario
-- `PATCH /users/:id` - Editar usuario
-- `DELETE /users/:id` - Eliminar usuario
-- `GET /admin/metrics` - Métricas
-- `PATCH /users/:id` - Cambiar rol
-
-## 🔄 Flujos de Ejemplo
-
-### 1️⃣ Registro e Inicio de Sesión
-
-```bash
-# 1. Registro (paciente)
-POST /auth/sign-up
-{
-  "email": "paciente@example.com",
-  "password": "securepass123",
-  "firstName": "Juan",
-  "lastName": "Perez"
-}
-
-Response:
-{
-  "accessToken": "eyJhbGc...",
-  "refreshToken": "eyJhbGc...",
-  "user": { ... }
-}
-
-# 2. Login
-POST /auth/sign-in
-{
-  "email": "paciente@example.com",
-  "password": "securepass123"
-}
-```
-
-### 2️⃣ Crear Prescripción (Médico)
-
-```bash
-POST /prescriptions
 Authorization: Bearer {accessToken}
+Content-Type: application/json
+```
+
+---
+
+## Autenticación
+
+### POST /auth/sign-up
+Registro (crea usuario con rol PATIENT por defecto).
+```json
+// Body
 {
-  "patientId": "patient-id-123",
+  "email": "paciente@example.com",
+  "password": "SecurePass123!",
+  "firstName": "Juan",
+  "lastName": "Perez",
+  "role": "PATIENT"  // opcional, default PATIENT
+}
+
+// Response 201
+{
+  "accessToken": "eyJ...",
+  "refreshToken": "eyJ...",
+  "user": { "id": "...", "email": "...", "firstName": "...", "lastName": "...", "role": "PATIENT" }
+}
+```
+
+### POST /auth/login  ·  POST /auth/sign-in
+Login (ambas rutas son equivalentes). `@HttpCode(200)`
+```json
+// Body
+{ "email": "...", "password": "..." }
+
+// Response 200 — misma estructura que sign-up
+```
+
+### POST /auth/sign-in-cookies
+Login que devuelve tokens como HTTP-Only cookies en lugar del body.
+
+### POST /auth/refresh
+Renueva el access token usando el refresh token (estrategia `jwt-refresh`).
+
+### GET /auth/me  ·  GET /auth/profile
+Devuelve `{ id, role }` del usuario autenticado.
+
+---
+
+## Usuarios — solo ADMIN
+
+### POST /users
+```json
+{
+  "email": "doctor@example.com",
+  "password": "DoctorPass123!",
+  "firstName": "Carlos",
+  "lastName": "Garcia",
+  "role": "DOCTOR"  // ADMIN | DOCTOR | PATIENT
+}
+```
+
+### GET /users
+Query params: `page`, `limit`, `sortBy`, `sortOrder`, `role`, `query`
+
+### GET /users/:id
+### PATCH /users/:id — body parcial de CreateUserDto
+### DELETE /users/:id
+
+---
+
+## Médicos
+
+Acceso: ADMIN, DOCTOR, PATIENT (lectura) / ADMIN (escritura)
+
+### GET /doctors
+Query params: `page`, `limit`, `query`, `sortBy`, `sortOrder`
+
+### GET /doctors/:id
+### PATCH /doctors/:id
+```json
+{ "specialty": "Cardiología" }
+```
+
+---
+
+## Pacientes
+
+Acceso: ADMIN, DOCTOR
+
+### GET /patients
+Query params: `page`, `limit`, `query`, `sortBy`, `sortOrder`
+
+### GET /patients/:id
+Acceso: ADMIN, DOCTOR, PATIENT
+
+---
+
+## Prescripciones
+
+### POST /prescriptions — DOCTOR
+```json
+{
+  "patientId": "cuid-del-paciente",  // o patientEmail
+  "patientEmail": "externo@email.com",
+  "notes": "Tomar en ayunas",
   "items": [
     {
       "name": "Amoxicilina",
       "dosage": "500mg",
       "quantity": "30",
-      "instructions": "Una cada 8 horas por 10 días"
-    },
-    {
-      "name": "Paracetamol",
-      "dosage": "500mg",
-      "quantity": "20",
-      "instructions": "Una cada 6 horas según sea necesario"
+      "instructions": "Una cápsula cada 8 horas por 10 días"
     }
   ]
 }
-
-Response:
-{
-  "id": "rx-123",
-  "doctorId": "doc-456",
-  "patientId": "patient-id-123",
-  "status": "PENDING",
-  "items": [ ... ],
-  "createdAt": "2024-01-15T10:30:00Z"
-}
 ```
 
-### 3️⃣ Ver Prescripciones (Paciente)
+### GET /prescriptions — ADMIN, DOCTOR
+Query params: `page`, `limit`, `status` (PENDING|CONSUMED), `doctorId`, `patientId`, `dateFrom`, `dateTo`, `sortBy`, `sortOrder`
 
-```bash
-GET /prescriptions/patient/patient-id-123
-Authorization: Bearer {accessToken}
+Para DOCTOR: automáticamente filtra por sus propias prescripciones.
 
-Response:
-[
-  {
-    "id": "rx-123",
-    "status": "PENDING",
-    "items": [ ... ],
-    "doctor": {
-      "user": {
-        "firstName": "Carlos",
-        "lastName": "García"
-      }
-    }
-  }
-]
+### GET /prescriptions/:id — ADMIN, DOCTOR, PATIENT
+Control de acceso por rol: médico solo ve las suyas, paciente solo las suyas.
+
+### GET /prescriptions/:id/pdf — ADMIN, DOCTOR, PATIENT
+Descarga PDF con QR integrado. Response: `application/pdf`
+
+### GET /prescriptions/:id/qr — ADMIN, DOCTOR, PATIENT
+Descarga código QR como PNG. Response: `image/png`
+
+### GET /prescriptions/doctor/:doctorId — DOCTOR, ADMIN
+Array de prescripciones del médico.
+
+### GET /prescriptions/patient/:patientId — PATIENT, DOCTOR, ADMIN
+Array de prescripciones del paciente.
+
+### PUT /prescriptions/:id/consume — PATIENT
+Marca como CONSUMED. Solo el paciente dueño puede consumirla.
+
+### PATCH /prescriptions/:id/status — PATIENT
+```json
+{ "status": "CONSUMED" }
 ```
 
-### 4️⃣ Cambiar Estado (Paciente)
+---
 
-```bash
-PATCH /prescriptions/rx-123/status
-Authorization: Bearer {accessToken}
-{
-  "status": "CONSUMED"
-}
-```
+## Paciente autenticado
 
-### 5️⃣ Ver Métricas (Admin)
+### GET /me/prescriptions — PATIENT
+Prescripciones del paciente logueado con paginación.  
+Query params: `page`, `limit`, `status`, `dateFrom`, `dateTo`, `sortBy`, `sortOrder`
 
-```bash
-GET /admin/metrics
-Authorization: Bearer {adminAccessToken}
+---
 
-Response:
+## Admin
+
+### GET /admin/metrics — ADMIN
+Query params: `from` (YYYY-MM-DD), `to` (YYYY-MM-DD)
+```json
 {
   "totalPatients": 45,
   "totalDoctors": 12,
@@ -206,77 +173,35 @@ Response:
     "consumed": 67
   },
   "prescriptionsByDay": [
-    { "date": "2024-01-15", "count": 5 },
-    { "date": "2024-01-16", "count": 8 }
+    { "date": "2024-01-15", "count": 5 }
   ]
 }
 ```
 
-## 📥 Headers Requeridos
+### GET /admin/prescriptions — ADMIN
+Todas las prescripciones con filtros y paginación. Mismos query params que `GET /prescriptions`.
 
-Todos los endpoints protegidos requieren:
+---
 
-```
-Authorization: Bearer {accessToken}
-Content-Type: application/json
-```
-
-## ⚠️ Códigos de Error
+## Códigos de Error
 
 | Código | Significado |
 |--------|-------------|
-| 200 | OK - Éxito |
-| 201 | Created - Recurso creado |
-| 400 | Bad Request - Datos inválidos |
-| 401 | Unauthorized - No autenticado |
-| 403 | Forbidden - Permisos insuficientes |
-| 404 | Not Found - Recurso no existe |
+| 200 | OK |
+| 201 | Creado |
+| 400 | Bad Request — datos inválidos o faltantes |
+| 401 | Unauthorized — sin token o token inválido |
+| 403 | Forbidden — permisos insuficientes |
+| 404 | Not Found |
+| 429 | Too Many Requests — rate limit (100 req/min) |
 | 500 | Internal Server Error |
 
-## 🚀 Comandos Útiles
-
-```bash
-# Iniciar en desarrollo
-npm run start:dev
-
-# Build para producción
-npm run build
-
-# Ejecutar migraciones
-npm run prisma:migrate
-
-# Abrir Prisma Studio
-npm run prisma:studio
-
-# Generar Prisma Client
-npm run prisma:generate
+Formato de error:
+```json
+{
+  "statusCode": 403,
+  "message": "Insufficient permissions",
+  "error": "Forbidden",
+  "timestamp": "2024-01-15T10:30:00.000Z"
+}
 ```
-
-## 🗂️ Estructura de Carpetas
-
-```
-backend/
-├── admin/           # Métricas para admin
-├── auth/            # Autenticación JWT, estrategias
-├── common/          
-│   ├── filters/     # Exception filters
-│   ├── guards/      # Auth guards
-│   ├── interceptors/# Logging, transformación
-│   ├── middlewares/ # Logger middleware
-│   └── pipes/       # Validación
-├── doctors/         # Perfil de médicos
-├── patients/        # Perfil de pacientes
-├── prescriptions/   # Crear, actualizar Rx
-├── prisma/          # DB schema, servicio
-├── users/           # Gestión de usuarios
-├── main.ts          # Entry point
-└── app.module.ts    # Root module
-```
-
-## 📚 Recursos Adicionales
-
-- [NestJS Docs](https://docs.nestjs.com)
-- [Prisma Docs](https://www.prisma.io/docs)
-- [JWT.io](https://jwt.io)
-- [PostgreSQL Docs](https://www.postgresql.org/docs)
-

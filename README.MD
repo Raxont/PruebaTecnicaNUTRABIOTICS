@@ -1,383 +1,225 @@
-# NUTRABITICS Backend - Sistema de Gestión de Prescripciones Médicas
+# NUTRABITICS — Sistema de Gestión de Prescripciones Médicas
 
-## 📋 Descripción
+Backend NestJS + Frontend Next.js para gestión de prescripciones médicas con roles diferenciados.
 
-Backend API para un sistema de gestión de prescripciones médicas construido con NestJS y PostgreSQL. Implementa funcionalidades para:
+---
 
-- **Autenticación** con JWT (access token y refresh token)
-- **Roles y permisos**: Admin, Médico, Paciente
-- **Gestión de prescripciones** médicas con códigos QR
-- **Métricas y reportes** para administradores
-- **Generación de PDFs** con códigos QR integrados
+## Stack Tecnológico
 
-## 🚀 Características
+**Backend:** Node.js 18+, NestJS 10, PostgreSQL 16, Prisma, JWT + Passport.js, class-validator, PDFKit, QRCode, Docker  
+**Frontend:** Next.js 14, React 18, TypeScript, Recharts
+
+---
+
+## Características implementadas
 
 ### Por Rol
 
-#### Admin
-- Crear usuarios con roles específicos
-- Ver métricas: cantidad de pacientes, médicos, prescripciones
-- Ver prescripciones por estado (pending/consumed)
-- Ver prescripciones por día
+**Admin**
+- Ver métricas: pacientes, médicos, prescripciones por estado y por día (últimos 30 días)
+- Crear usuarios y asignar roles
+- Listar, editar y eliminar usuarios
+- Ver todas las prescripciones con filtros y paginación
 
-#### Médico
-- Crear prescripciones para pacientes
-- Ver sus propias prescripciones
-- Ver detalles de pacientes
+**Médico**
+- Crear prescripciones para pacientes (por ID o por email)
+- Listar y ver detalle de sus propias prescripciones
+- Descargar PDF y código QR de prescripciones
+- Filtros por estado, paciente y rango de fechas
 
-#### Paciente
-- Ver sus prescripciones
-- Cambiar estado de prescripción (pending → consumed)
-- Descargar PDF de prescripción con código QR
-- Acceder a códigos QR individuales de prescripciones
+**Paciente**
+- Listar y ver detalle de sus prescripciones
+- Cambiar estado: `PENDING → CONSUMED`
+- Descargar PDF con código QR integrado
+- Descargar código QR individual
+- Filtros por estado, médico y rango de fechas
 
-## 🛠️ Stack Tecnológico
+---
 
-- **Runtime**: Node.js 18+
-- **Framework**: NestJS 10
-- **Base de datos**: PostgreSQL 16
-- **ORM**: Prisma
-- **Autenticación**: JWT con Passport.js
-- **Validación**: class-validator
-- **Contenedorización**: Docker
+## Instalación y Ejecución
 
-## 📦 Prerequisites
-
-- Docker & Docker Compose
-- O alternativamente:
-  - Node.js 18+
-  - PostgreSQL 12+
-  - npm o yarn
-
-## 🚀 Instalación y Ejecución
-
-### Opción 1: Con Docker (Recomendado)
+### Con Docker (Recomendado)
 
 ```bash
-# 1. Clonar el repositorio
-git clone <repository-url>
+git clone https://github.com/Raxont/PruebaTecnicaNUTRABIOTICS
 cd PruebaTecnicaNUTRABIOTICS
 
-# 2. Configurar variables de entorno
 cp backend/.env.example backend/.env
-# Editar backend/.env con tus configuraciones
+# Editar backend/.env
 
-# 3. Iniciar servicios con Docker
 docker-compose up -d
-
-# 4. Ejecutar migraciones y seed (opcional, para datos de prueba)
-docker-compose exec backend npm run prisma:migrate
-docker-compose exec backend npm run prisma:seed
-
-# Servicios disponibles:
-# - API Backend: http://localhost:3001
-# - Base de datos: localhost:5432
-# - Adminer (DB UI): http://localhost:8080
 ```
 
-### Opción 2: Instalación Local
+Servicios disponibles:
+- API Backend: http://localhost:3001
+- Swagger UI: http://localhost:3001/api
+- Base de datos: localhost:5432
+- Adminer (DB UI): http://localhost:8080
+
+### Instalación Local
 
 ```bash
-# 1. Instalar dependencias
 cd backend
 npm install
-
-# 2. Configurar base de datos PostgreSQL
-# Crear base de datos 'nutrabitics_db' o actualizar .env
-
-# 3. Generar Prisma Client
 npm run prisma:generate
-
-# 4. Ejecutar migraciones
 npm run prisma:migrate
-
-# 5. Ejecutar seed (datos de prueba)
-npm run prisma:seed
-
-# 6. Ejecutar en desarrollo
+npm run prisma:seed   # datos de prueba
 npm run start:dev
-
-# La API estará disponible en http://localhost:3001
 ```
 
-## 📝 Variables de Entorno
+---
 
-Crear archivo `backend/.env` basado en `.env.example`:
+## Variables de Entorno
 
 ```env
-# Base de datos
 DATABASE_URL="postgresql://nutrabitics_user:nutrabitics_password@localhost:5432/nutrabitics_db"
-
-# JWT Configuration
 JWT_ACCESS_SECRET="your_secret_key_here_minimum_32_characters_long"
 JWT_REFRESH_SECRET="your_refresh_secret_here_minimum_32_characters"
-JWT_ACCESS_TTL=900                    # 15 minutos en segundos
-JWT_REFRESH_TTL=604800               # 7 días en segundos
-
-# Aplicación
-APP_ORIGIN="http://localhost:3000"   # URL del frontend
-PORT=3001                            # Puerto del servidor
-
-# Configuración adicional (opcional)
-NODE_ENV="development"               # Entorno de ejecución
+JWT_ACCESS_TTL=900        # 15 minutos
+JWT_REFRESH_TTL=604800    # 7 días
+APP_ORIGIN="http://localhost:3000"
+PORT=3001
 ```
 
-## � Scripts Disponibles
+---
+
+## Scripts disponibles
 
 ```bash
 cd backend
 
-# Desarrollo
-npm run start:dev          # Iniciar en modo desarrollo con hot reload
-npm run start:debug        # Iniciar en modo debug
-npm run start:prod         # Iniciar en producción
-
-# Build
+npm run start:dev          # Desarrollo con hot reload
 npm run build              # Compilar TypeScript
-npm run prebuild           # Limpiar directorio dist
+npm run start:prod         # Producción
 
-# Testing
-npm run test               # Ejecutar tests unitarios
-npm run test:watch         # Tests en modo watch
-npm run test:cov           # Tests con reporte de cobertura
-npm run test:e2e           # Tests end-to-end
-npm run test:debug         # Debug de tests
-
-# Base de datos (Prisma)
 npm run prisma:generate    # Generar Prisma Client
 npm run prisma:migrate     # Ejecutar migraciones
-npm run prisma:studio      # Abrir Prisma Studio (UI de BD)
-npm run prisma:seed        # Ejecutar seed de datos de prueba
+npm run prisma:studio      # UI de la base de datos
+npm run prisma:seed        # Datos de prueba
 
-# Código
-npm run lint               # Ejecutar ESLint
-npm run format             # Formatear código con Prettier
+npm run test               # Tests unitarios
+npm run test:cov           # Con cobertura
+npm run test:e2e           # Tests E2E
+npm run lint               # ESLint
+npm run format             # Prettier
 ```
 
-## 🗄️ Gestión de Base de Datos
+---
 
-### Autenticación
-- `POST /auth/sign-up` - Registro de pacientes
-- `POST /auth/sign-in` - Login
+## Endpoints
 
-### Usuarios (Admin only)
-- `POST /users` - Crear usuario
-- `GET /users` - Listar usuarios
-- `GET /users/:id` - Obtener usuario
-- `PATCH /users/:id` - Actualizar usuario
-- `DELETE /users/:id` - Eliminar usuario
+### Autenticación (públicos)
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| POST | `/auth/sign-up` | Registro de pacientes |
+| POST | `/auth/sign-in` | Login |
+| POST | `/auth/login` | Login (alias) |
+| POST | `/auth/refresh` | Renovar access token |
+| GET | `/auth/me` | Perfil del usuario autenticado |
+
+### Usuarios (Admin)
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| POST | `/users` | Crear usuario |
+| GET | `/users` | Listar usuarios |
+| GET | `/users/:id` | Obtener usuario |
+| PATCH | `/users/:id` | Actualizar usuario |
+| DELETE | `/users/:id` | Eliminar usuario |
 
 ### Médicos
-- `GET /doctors` - Listar médicos
-- `GET /doctors/:id` - Obtener médico
-- `PATCH /doctors/:id` - Actualizar médico
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| GET | `/doctors` | Listar médicos |
+| GET | `/doctors/:id` | Obtener médico |
+| PATCH | `/doctors/:id` | Actualizar especialidad (Admin) |
 
 ### Pacientes
-- `GET /patients` - Listar pacientes
-- `GET /patients/:id` - Obtener paciente
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| GET | `/patients` | Listar pacientes (Admin/Doctor) |
+| GET | `/patients/:id` | Obtener paciente |
 
 ### Prescripciones
-- `POST /prescriptions` - Crear prescripción (Doctor only)
-- `GET /prescriptions` - Listar prescripciones con filtros y paginación
-- `GET /prescriptions/:id` - Obtener prescripción
-- `GET /prescriptions/:id/pdf` - Descargar PDF de prescripción con QR
-- `GET /prescriptions/:id/qr` - Descargar código QR de prescripción
-- `GET /prescriptions/doctor/:doctorId` - Prescripciones por médico
-- `GET /prescriptions/patient/:patientId` - Prescripciones por paciente
-- `PUT /prescriptions/:id/consume` - Consumir prescripción (Patient only)
-- `PATCH /prescriptions/:id/status` - Cambiar estado (Patient only)
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| POST | `/prescriptions` | Crear prescripción (Doctor) |
+| GET | `/prescriptions` | Listar con filtros y paginación (Admin/Doctor) |
+| GET | `/prescriptions/:id` | Ver prescripción |
+| GET | `/prescriptions/:id/pdf` | Descargar PDF con QR |
+| GET | `/prescriptions/:id/qr` | Descargar código QR (PNG) |
+| GET | `/prescriptions/doctor/:doctorId` | Prescripciones por médico |
+| GET | `/prescriptions/patient/:patientId` | Prescripciones por paciente |
+| PUT | `/prescriptions/:id/consume` | Consumir prescripción (Patient) |
+| PATCH | `/prescriptions/:id/status` | Cambiar estado (Patient) |
+
+### Paciente autenticado
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| GET | `/me/prescriptions` | Mis prescripciones con paginación |
 
 ### Admin
-- `GET /admin/metrics` - Obtener métricas (Admin only)
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| GET | `/admin/metrics` | Métricas generales |
+| GET | `/admin/prescriptions` | Todas las prescripciones (Admin) |
 
-## 🔐 Estructura de Datos
+---
 
-### User
-```
-{
-  id: string (CUID)
-  email: string (unique)
-  password: string (hashed)
-  firstName: string
-  lastName: string
-  role: ADMIN | DOCTOR | PATIENT
-  createdAt: DateTime
-  updatedAt: DateTime
-}
-```
+## Modelos de Datos
 
-### Prescription
 ```
-{
-  id: string (CUID)
-  doctorId: string
-  patientId: string
-  status: PENDING | CONSUMED
-  items: PrescriptionItem[]
-  createdAt: DateTime
-  updatedAt: DateTime
-}
+User        id, email, password (bcrypt), firstName, lastName, role, timestamps
+Doctor      id, userId (FK), specialty, timestamps
+Patient     id, userId (FK), timestamps
+Prescription  id, code, doctorId, patientId?, patientEmail?, status, notes?, consumedAt?, timestamps
+PrescriptionItem  id, prescriptionId, name, dosage, quantity, instructions?
 ```
 
-### PrescriptionItem
-```
-{
-  id: string (CUID)
-  prescriptionId: string
-  name: string (medicamento)
-  dosage: string (dosis)
-  quantity: number (cantidad)
-  instructions: string (indicaciones)
-}
-```
+**Enums:**
+- `UserRole`: `ADMIN | DOCTOR | PATIENT`
+- `PrescriptionStatus`: `PENDING | CONSUMED`
 
-## 📊 Métricas
+---
 
-El endpoint `/admin/metrics` retorna:
+## Cuentas de Prueba (después de `npm run prisma:seed`)
 
-```json
-{
-  "totalPatients": 45,
-  "totalDoctors": 12,
-  "totalPrescriptions": 156,
-  "prescriptionsByStatus": {
-    "pending": 89,
-    "consumed": 67
-  },
-  "prescriptionsByDay": [
-    { "date": "2024-01-15", "count": 5 },
-    { "date": "2024-01-16", "count": 8 }
-  ]
-}
-```
+| Rol | Email | Contraseña |
+|-----|-------|------------|
+| Admin | `admin@test.com` | `password123` |
+| Doctor | `dr@test.com` | `password123` |
+| Paciente | `patient@test.com` | `password123` |
 
-## 👥 Cuentas de Prueba
+---
 
-Después de ejecutar `npm run prisma:seed`, estarán disponibles las siguientes cuentas:
+## Seguridad implementada
 
-| Rol | Email | Contraseña | Descripción |
-|-----|-------|------------|-------------|
-| **Admin** | `admin@test.com` | `password123` | Acceso completo al sistema |
-| **Doctor** | `dr@test.com` | `password123` | Dr. Maria Gonzalez - Médico general |
-| **Patient** | `patient@test.com` | `password123` | Ana Molina - Paciente de prueba |
+- Contraseñas hasheadas con bcrypt (salt: 10)
+- JWT access token (15 min) + refresh token (7 días)
+- HTTP-Only cookies como opción alternativa (`/auth/sign-in-cookies`)
+- Role-Based Access Control (RBAC) con guards y decoradores
+- Helmet para headers de seguridad
+- Rate limiting: 100 requests/minuto por IP (`ThrottlerModule`)
+- CORS configurado para el origen del frontend
+- Validación global de DTOs con `class-validator`
+- Exception filter global con respuestas consistentes
 
-### Datos de Prueba Incluidos:
-- 6 prescripciones de ejemplo (algunas pendientes, otras consumidas)
-- Medicamentos comunes: Paracetamol, Ibuprofeno, Amoxicilina, etc.
-- Estados de prescripción variados para testing
+---
 
-## 🧪 Testing
+## Códigos QR en Prescripciones
 
-```bash
-cd backend
+Los PDFs incluyen automáticamente un código QR que enlaza a la vista web de la prescripción. También se puede obtener el QR como imagen PNG independiente vía `GET /prescriptions/:id/qr`.
 
-# Unit tests
-npm run test
+La URL base del QR es configurable vía `APP_ORIGIN` en el archivo `.env`.
 
-# Test con coverage
-npm run test:cov
+---
 
-# E2E tests
-npm run test:e2e
-```
+## Troubleshooting
 
-## 📚 Prisma Commands
-
-```bash
-cd backend
-
-# Generar Prisma Client
-npm run prisma:generate
-
-# Ejecutar migraciones
-npm run prisma:migrate
-
-# Abrir Prisma Studio (UI)
-npm run prisma:studio
-```
-
-## 🐛 Troubleshooting
-
-### Puerto 5432 ocupado
-```bash
-# Cambiar puerto en docker-compose.yml
-"5433:5432"
-# Actualizar DATABASE_URL en .env
-```
-
-### Migraciones fallando
-```bash
-# Resetear BD (CUIDADO: borra todo)
-cd backend
-npx prisma migrate reset
-```
-
-### Error de connexión a DB
-```bash
-# Verificar que postgres esté corriendo
-docker-compose ps
-
-# Ver logs
-docker-compose logs postgres
-```
-
-### Resetear datos de prueba
-```bash
-# Ejecutar seed nuevamente (sobrescribe datos existentes)
-cd backend
-npm run prisma:seed
-```
-
-### Problemas con códigos QR
-```bash
-# Verificar que APP_ORIGIN esté configurado correctamente en .env
-# El QR genera URLs hacia el frontend configurado
-```
-
-## ✅ Checklist de Implementación
-
-- [x] Schema Prisma con modelos
-- [x] Autenticación JWT
-- [x] Guards y roles
-- [x] CRUD de usuarios
-- [x] Módulo de médicos
-- [x] Módulo de pacientes  
-- [x] Módulo de prescripciones
-- [x] Endpoint de métricas
-- [x] **Download PDF de prescripciones con códigos QR**
-- [x] **Endpoint para códigos QR individuales**
-- [ ] Email notifications
-- [ ] Rate limiting
-- [ ] Swagger/OpenAPI docs
-
-## 📝 Notas
-
-- Las contraseñas se encriptan con bcrypt (salt: 10)
-- Los tokens JWT expiran según JWT_ACCESS_TTL y JWT_REFRESH_TTL
-- Las prescripciones se crean con estado PENDING por defecto
-- Solo los pacientes pueden cambiar el estado de sus prescripciones
-
-## 🔳 Códigos QR en Prescripciones
-
-### Funcionalidades QR Implementadas:
-
-1. **PDF con QR Integrado**: Los PDFs de prescripción incluyen automáticamente un código QR que enlaza a la vista web de la prescripción
-2. **Endpoint QR Independiente**: `GET /prescriptions/:id/qr` retorna el código QR como imagen PNG
-3. **URL del QR**: `http://localhost:3000/patient/prescriptions/{prescriptionId}` (configurable via APP_ORIGIN)
-
-### Beneficios:
-- **Acceso Rápido**: Los pacientes pueden escanear el QR desde el PDF impreso para acceder digitalmente
-- **Verificación**: Los códigos QR facilitan la verificación de autenticidad de prescripciones
-- **Integración Móvil**: Compatible con aplicaciones móviles de lectura de QR
-
-### Seguridad:
-- Los códigos QR respetan las mismas reglas de autorización que los endpoints de API
-- Solo usuarios autorizados pueden acceder a las prescripciones vía QR
-
-## 👤 Autor
-
-Tu Nombre
-
-## 📄 Licencia
-
-MIT
+| Problema | Solución |
+|----------|----------|
+| Puerto 5432 ocupado | Cambiar a `5433:5432` en `docker-compose.yml` y actualizar `DATABASE_URL` |
+| Migraciones fallan | `npx prisma migrate reset` (borra todos los datos) |
+| Error de conexión a BD | Verificar `DATABASE_URL` en `.env` y que PostgreSQL esté corriendo |
+| Token inválido | Verificar `JWT_ACCESS_SECRET` en `.env` |
+| Import errors de Prisma | `npm run prisma:generate` |
+| QR con URL incorrecta | Verificar `APP_ORIGIN` en `.env` |

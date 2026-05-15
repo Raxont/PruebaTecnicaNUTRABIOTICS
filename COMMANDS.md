@@ -1,399 +1,107 @@
-# 🛠️ Comandos Útiles - NUTRABITICS Backend
+# Comandos — NUTRABITICS
 
-Referencia rápida de comandos frecuentes.
-
----
-
-## 🚀 Inicio & Desarrollo
+## Backend
 
 ```bash
-# Ir a la carpeta backend
 cd backend
 
-# Instalar dependencias
-npm install
+# Desarrollo
+npm run start:dev          # Hot reload
+npm run start:debug        # Con debugger
+npm run build              # Compilar
+npm run start:prod         # Producción
 
-# Ejecutar en modo desarrollo (hot reload)
-npm run start:dev
+# Base de datos
+npm run prisma:generate    # Generar Prisma Client
+npm run prisma:migrate     # Ejecutar migraciones
+npm run prisma:studio      # UI de la BD (http://localhost:5555)
+npm run prisma:seed        # Datos de prueba
 
-# Ejecutar en modo debug
-npm run start:debug
+# Calidad
+npm run lint               # ESLint
+npm run lint -- --fix      # Fix automático
+npm run format             # Prettier
 
-# Build para producción
-npm run build
-
-# Ejecutar versión producción
-npm run start:prod
+# Tests
+npm run test               # Unitarios
+npm run test:cov           # Con cobertura
+npm run test:e2e           # E2E
 ```
 
----
-
-## 🐳 Docker
+## Frontend
 
 ```bash
-# Iniciar servicios (PostgreSQL + Backend)
+cd frontend
+
+npm run dev                # Desarrollo (http://localhost:3000)
+npm run build              # Build de producción
+npm run start              # Servir build
+npm run lint               # ESLint
+
+# Tests
+npm test                   # Todos los tests
+npm run test:watch         # Watch mode
+npm run test:coverage      # Con cobertura
+```
+
+## Docker
+
+```bash
+# Iniciar todos los servicios
 docker-compose up -d
 
 # Ver logs
 docker-compose logs -f
+docker-compose logs -f backend
 
-# Detener servicios
+# Detener
 docker-compose down
 
-# Resetear volúmenes (cuidado: borra datos)
+# Resetear volúmenes (borra datos de BD)
 docker-compose down -v
 
-# Conectarse a la BD desde Docker
+# Conectar a PostgreSQL
 docker exec -it nutrabitics_db psql -U nutrabitics_user -d nutrabitics_db
 ```
 
----
+## PostgreSQL — Queries útiles
 
-## 🗄️ Prisma & Base de Datos
+```sql
+-- Ver usuarios
+SELECT id, email, role, "createdAt" FROM "User";
 
-```bash
-cd backend
-
-# Generar Prisma Client (después de instalar)
-npm run prisma:generate
-
-# Ejecutar migraciones
-npm run prisma:migrate
-
-# Resetear BD (cuidado: borra todo)
-npx prisma migrate reset
-
-# Abrir Prisma Studio (UI para la BD)
-npm run prisma:studio
-
-# Ver estado de las migraciones
-npx prisma migrate status
-
-# Crear nueva migración
-npx prisma migrate dev --name nombre_migracion
-```
-
----
-
-## 📊 PostgreSQL
-
-```bash
-# Conectarse a la BD (local)
-psql -U nutrabitics_user -d nutrabitics_db -h localhost
-
-# Conectarse a la BD (Docker)
-docker exec -it nutrabitics_db psql -U nutrabitics_user -d nutrabitics_db
-
-# Queries útiles
-
-# Ver todos los usuarios
-SELECT * FROM "User";
-
-# Ver prescripciones pendientes
-SELECT * FROM "Prescription" WHERE status = 'PENDING';
-
-# Contar prescripciones por estado
+-- Contar prescripciones por estado
 SELECT status, COUNT(*) FROM "Prescription" GROUP BY status;
 
-# Ver prescripciones de un paciente
-SELECT * FROM "Prescription" WHERE "patientId" = 'patient-id-xxx';
+-- Ver prescripciones de un paciente
+SELECT * FROM "Prescription" WHERE "patientId" = '<id>';
 
-# Ver items de una prescripción
-SELECT * FROM "PrescriptionItem" WHERE "prescriptionId" = 'rx-id-xxx';
-
-# Cambiar rol de un usuario
+-- Cambiar rol manualmente
 UPDATE "User" SET role = 'ADMIN' WHERE email = 'user@example.com';
 
-# Eliminar usuario (y sus datos relacionados)
-DELETE FROM "User" WHERE id = 'user-id-xxx';
-
-# Ver relaciones (Foreign Keys)
-\d "Prescription"
+-- Reset completo de datos
+-- (solo desarrollo) usar: npm run prisma:migrate reset
 ```
 
----
-
-## 🧪 Testing
+## Troubleshooting
 
 ```bash
-cd backend
+# Puerto 5432 ocupado
+lsof -i :5432          # Mac/Linux
+netstat -ano | findstr :5432  # Windows
 
-# Ejecutar tests unitarios
-npm run test
-
-# Tests con coverage
-npm run test:cov
-
-# Tests en modo watch
-npm run test:watch
-
-# Tests E2E
-npm run test:e2e
-
-# Tests debugging
-npm run test:debug
-```
-
----
-
-## 📝 Calidad de Código
-
-```bash
-cd backend
-
-# Linting
-npm run lint
-
-# Fix linting issues
-npm run lint -- --fix
-
-# Code formatting
-npm run format
-
-# Check formatting
-npx prettier --check .
-```
-
----
-
-## 🔍 Debugging
-
-```bash
-# Ejecutar con debugger
-npm run start:debug
-
-# Abrir en Chrome
-chrome://inspect
-
-# Logs personalizados en consola
-console.log('Debug message:', data);
-
-# Prettier debug
-npx prettier --debug-check .
-```
-
----
-
-## 🌐 REST API Testing
-
-```bash
-# Test con CURL
-
-# 1. Sign up
-curl -X POST http://localhost:3001/auth/sign-up \
-  -H "Content-Type: application/json" \
-  -d '{"email":"test@example.com","password":"pass123","firstName":"John","lastName":"Doe"}'
-
-# 2. Sign in
-curl -X POST http://localhost:3001/auth/sign-in \
-  -H "Content-Type: application/json" \
-  -d '{"email":"test@example.com","password":"pass123"}'
-
-# 3. Ver usuarios (requiere token)
-curl -X GET http://localhost:3001/users \
-  -H "Authorization: Bearer YOUR_TOKEN"
-
-# 4. Health check (sin auth)
-curl http://localhost:3001
-
-# Guardar token en variable
-export TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-
-# Usar en requests
-curl -X GET http://localhost:3001/admin/metrics \
-  -H "Authorization: Bearer $TOKEN"
-```
-
----
-
-## 📁 Gestión de Archivos
-
-```bash
-# Crear .env desde template
-cp backend/.env.example backend/.env
-
-# Ver contenido de .env (sin mostrar valores sensibles)
-cat backend/.env | grep -v "SECRET"
-
-# Listar archivos importantes
-ls -la backend/src/
-ls -la backend/prisma/
-
-# Buscar en el código
-grep -r "TODO" backend/
-grep -r "console.log" backend/
-```
-
----
-
-## 🔒 Seguridad
-
-```bash
-# Generar JWT secrets seguros
-openssl rand -base64 32
-
-# Verificar vulnerabilidades en dependencias
-npm audit
-
-# Fix vulnerabilidades automáticamente
-npm audit fix
-
-# Check de seguridad
-npm audit --audit-level=moderate
-```
-
----
-
-## 📦 Dependencias
-
-```bash
-cd backend
-
-# Listar dependencias instaladas
-npm list
-
-# Actualizar dependencias
-npm update
-
-# Ver dependencias desactualizadas
-npm outdated
-
-# Mostrar espacio usado por node_modules
-du -sh node_modules/
+# Resetear migraciones (borra todos los datos)
+cd backend && npx prisma migrate reset
 
 # Reinstalar node_modules
-npm ci
-```
+rm -rf node_modules && npm install
 
----
+# Regenerar Prisma Client tras cambios en schema
+npm run prisma:generate
 
-## 🧹 Limpieza
-
-```bash
-cd backend
-
-# Limpiar archivos compilados
-npm run prebuild
-
-# Eliminar node_modules y reinstalar
-rm -rf node_modules package-lock.json
-npm install
-
-# Limpiar cache de npm
-npm cache clean --force
-
-# Eliminar archivos temporales
-rm -rf dist/
-rm -rf .eslintcache
-```
-
----
-
-## 🐛 Troubleshooting
-
-```bash
-# Puerto ocupado (6432 es PostgreSQL)
-# Windows
-netstat -ano | findstr :5432
-
-# Mac/Linux
-lsof -i :5432
-
-# Matar proceso en puerto
-# Windows
-taskkill /PID <PID> /F
-
-# Mac/Linux
-kill -9 <PID>
-
-# Restart Docker
-docker restart nutrabitics_db
-
-# Ver logs del contenedor
+# Ver logs del contenedor backend
 docker logs nutrabitics_backend -f
+
+# JWT secrets — generar valor seguro
+openssl rand -base64 32
 ```
-
----
-
-## 📊 Monitoreo
-
-```bash
-# Ver procesos corriendo
-npm ps
-
-# Monitor de recursos
-npm top
-
-# Ver requests en tiempo real
-npm run start:debug
-
-# Performance profiling
-node --prof app.ts
-node --prof-process isolate-*.log > profile.txt
-```
-
----
-
-## 🚀 Deployment
-
-```bash
-# Build de producción
-npm run build
-
-# Verificar build
-ls -la dist/
-
-# Ejecutar build
-npm run start:prod
-
-# Con PM2 (opcional)
-npm install -g pm2
-pm2 start dist/main.js --name "nutrabitics-backend"
-pm2 logs nutrabitics-backend
-```
-
----
-
-## 📝 Checklist Diario
-
-- [ ] `npm run start:dev` - Backend corriendo
-- [ ] `docker-compose up -d` - BD corriendo
-- [ ] `npm run lint` - Sin errores de linting
-- [ ] `npm run test` - Tests pasando
-- [ ] Variables .env correctas
-- [ ] No hay console.log en código
-- [ ] Cambios commiteados
-
----
-
-## 🆘 Comandos de Emergencia
-
-```bash
-# Resetear todo
-cd backend
-rm -rf node_modules dist .eslintcache
-npm install
-npm run build
-
-# Resetear BD
-docker-compose down -v
-docker-compose up -d
-
-# Full reset
-docker-compose down -v
-rm -rf backend/node_modules
-docker-compose up -d
-cd backend
-npm install
-npm run prisma:migrate
-```
-
----
-
-## 📚 Recursos Rápidos
-
-- [NestJS CLI](https://docs.nestjs.com/cli/overview)
-- [Prisma CLI](https://www.prisma.io/docs/reference/api-reference/command-reference)
-- [npm scripts](https://docs.npmjs.com/cli/v9/using-npm/run-script)
-- [Docker Compose](https://docs.docker.com/compose/reference/)
-
