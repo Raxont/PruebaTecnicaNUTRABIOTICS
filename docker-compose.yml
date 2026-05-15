@@ -54,6 +54,20 @@ services:
              npm run prisma:migrate &&
              npm run start:prod"
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: nutrabitics_frontend
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:3001
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - nutrabitics_network
+
 volumes:
   postgres_data:
 
